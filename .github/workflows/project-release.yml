@@ -199,7 +199,7 @@ jobs:
     steps:
       - name: "Update release"
         run: |
-          BODY=":octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} checks. See [run id ${{ github.run_id }}](${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          BODY=":white_check_mark: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` passed all project ${{ needs.check_release.outputs.project_num }} checks. See [run id ${{ github.run_id }}](${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
           echo "$BODY"
 
   update_failure:
@@ -213,7 +213,7 @@ jobs:
           TEST_RESULT="passed all project ${{ needs.check_release.outputs.project_num }} checks."
           if [[ "${{ needs.check_release.result }}" != "success" }} ]]; then TEST_RESULT="did not pass all project ${{ needs.check_release.outputs.project_num }} checks (status: ${{ needs.check_release.result }})."
         
-          BODY=":octocat: The release `${{ needs.check_release.outputs.release_tag }}` ${TEST_RESULT}."
+          BODY=":octocat: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` ${TEST_RESULT}."
           
 
 # https://docs.github.com/en/rest/reference/releases#update-a-release

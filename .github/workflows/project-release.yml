@@ -87,7 +87,7 @@ jobs:
     needs: check_release
     steps:
       - name: "Setup project repository"
-        uses: usf-cs272-spring2022/action-project-setup
+        uses: usf-cs272-spring2022/action-project-setup@main
     
       - name: "Hello world"
         run: |
@@ -104,7 +104,7 @@ jobs:
     needs: check_compile
     steps:
       - name: "Setup project repository"
-        uses: usf-cs272-spring2022/action-project-setup
+        uses: usf-cs272-spring2022/action-project-setup@main
     
       - name: "Hello world"
         run: echo "Hello world"

@@ -53,8 +53,6 @@ jobs:
           echo "Tag: ${RELEASE_TAG}"
           echo ""
           
-          RELEASE_TAG="V3.2.A"
-          
           if [[ ${RELEASE_TAG} =~ ^v([1-4])\.([0-9]+)\.([0-9]+)$ ]]; then
             PROJECT_NUM=${BASH_REMATCH[1]}
             REVIEWS_NUM=${BASH_REMATCH[2]}

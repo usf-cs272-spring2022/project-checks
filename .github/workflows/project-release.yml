@@ -18,7 +18,12 @@ on:
       release_tag:
         description: "The project version (e.g. v1.0.0)."
         value: ${{ jobs.check_release.outputs.release_tag }}
-        
+
+env:
+  USER_PATH: project-main
+  TEST_PATH: project-tests
+  
+
 jobs:
   check_release:
     name: "Release Number"
@@ -82,11 +87,11 @@ jobs:
         run: |
           USER_SHA=${{ github.sha }}
           echo "User SHA: ${USER_SHA}"
-          echo "::set-output name=user_cache::project-user-${USER_SHA}"
+          echo "::set-output name=user_cache::${USER_PATH}-${USER_SHA}"
           
-          TEST_SHA=$(git ls-remote --refs https://github.com/${{ github.repository_owner }}/project-tests.git main | head -1 | cut -f 1)
+          TEST_SHA=$(git ls-remote --refs https://github.com/${{ github.repository_owner }}/${TEST_PATH}.git main | head -1 | cut -f 1)
           echo "Test SHA: ${TEST_SHA}"
-          echo "::set-output name=test_cache::project-test-${TEST_SHA}"
+          echo "::set-output name=test_cache::${TEST_PATH}-${TEST_SHA}"
 
   check_compile:
     name: "Code Compiles"
@@ -94,22 +99,34 @@ jobs:
     needs: check_release
     steps:
       - name: "Setup project repository"
+        id: "setup-project"
         uses: usf-cs272-spring2022/action-project-setup@main
         with:
           user_repo: ${{ github.repository }}
-          test_repo: ${{ github.repository_owner }}/project-tests
+          test_repo: ${{ github.repository_owner }}/${{ env.TEST_PATH }}
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
     
-      - name: "Hello world"
+      - name: "Compile user code"
+        working-directory: ${{ env.USER_PATH }}
         run: |
-          echo "Hello world"
-          echo "actor: ${{ github.actor }}"
-          echo "ref: ${{ github.ref }}"
-          echo "ref_type: ${{ github.ref_type }}"
-          echo "repository: ${{ github.repository }}"
-          echo "event: ${{ toJson(github.event) }}"
-  
+          mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:none -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false compile
+
+      - name: "Listing user code"
+        working-directory: ${{ env.USER_PATH }}
+        run: |
+          ls -ACGR target/classes
+
+      - name: "Compile test code"
+        working-directory: ${{ env.USER_PATH }}
+        run: |
+          mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:none -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false test-compile
+
+      - name: "Listing test code"
+        working-directory: ${{ env.USER_PATH }}
+        run: |
+          ls -ACGR target/test-classes
+
   check_source_warnings:
     name: "Code Warnings"
     runs-on: ubuntu-latest

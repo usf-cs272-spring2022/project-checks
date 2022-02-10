@@ -192,7 +192,7 @@ jobs:
         run: echo "Hello world"
 
   update_success:
-    name: "Update Status"
+    name: "Update Success"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ success() }}
@@ -209,20 +209,42 @@ jobs:
             --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
-            --data '{"body":"${BODY}"}'
+            --data "{\"body\":\"${BODY}\"}"
 
   update_failure:
-    name: "Update Status"
+    name: "Update Failure"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ failure() }}
     steps:
-      - name: "Update release"
+      - name: "Update test success"
+        if: ${{ needs.check_tests.result == 'success' }}
         run: |
-          TEST_RESULT="passed all project ${{ needs.check_release.outputs.project_num }} checks."
-          if [[ "${{ needs.check_release.result }}" != "success" }} ]]; then TEST_RESULT="did not pass all project ${{ needs.check_release.outputs.project_num }} checks (status: ${{ needs.check_release.result }})."
-        
-          BODY=":octocat: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` ${TEST_RESULT}."
+          BODY=":octocat: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          echo "$BODY"
+          echo "${{ github.event.release.id }}"
           
+          curl \
+            -X PATCH \
+            --header "Accept: application/vnd.github.v3+json" \
+            --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+            --header 'content-type: application/json' \
+            --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
+            --data "{\"body\":\"${BODY}\"}"
+
+      - name: "Update test failure"
+        if: ${{ needs.check_tests.result != 'success' }}
+        run: |
+          BODY=":x: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          echo "$BODY"
+          echo "${{ github.event.release.id }}"
+          
+          curl \
+            -X PATCH \
+            --header "Accept: application/vnd.github.v3+json" \
+            --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+            --header 'content-type: application/json' \
+            --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
+            --data "{\"body\":\"${BODY}\"}"
 
 # https://docs.github.com/en/rest/reference/releases#update-a-release

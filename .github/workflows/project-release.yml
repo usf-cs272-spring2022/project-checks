@@ -255,6 +255,7 @@ jobs:
         if: ${{ needs.check_tests.result == 'success' }}
         run: |
           BODY=":octocat: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          BODY=":octocat: The release ${{ needs.check_release.outputs.release_tag }} passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
           echo "$BODY"
           echo "${{ github.event.release.id }}"
           
@@ -264,7 +265,7 @@ jobs:
             --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
-            --data "{\"body\":\"Hello world\"}"
+            --data "{\"body\":\"${BODY}\"}"
 
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}

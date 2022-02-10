@@ -138,7 +138,7 @@ jobs:
   check_source_warnings:
     name: "Code Warnings"
     runs-on: ubuntu-latest
-    needs: [check_release, check_compile, check_tests]
+    needs: [check_release, check_compile]
     steps:
       - name: "Setup project repository"
         id: "setup-project"
@@ -162,7 +162,7 @@ jobs:
   check_javadoc_warnings:
     name: "Javadoc Warnings"
     runs-on: ubuntu-latest
-    needs: [check_release, check_compile, check_tests]
+    needs: [check_release, check_compile]
     steps:
       - name: "Setup project repository"
         id: "setup-project"
@@ -186,22 +186,34 @@ jobs:
   check_code_style:
     name: "Code Style"
     runs-on: ubuntu-latest
-    needs: [check_release, check_compile, check_tests]
+    needs: [check_release, check_compile]
     steps:
       - name: "Hello world"
         run: echo "Hello world"
 
-  update_status:
+  update_success:
     name: "Update Status"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
-    if: ${{ always() }}
+    if: ${{ success() }}
     steps:
       - name: "Update release"
         run: |
-          if [[ "${{ needs.check_release.result }}" == "success" ]]; then cr=":white_check_mark:"; else cr=":x:"; fi
-          
-          echo "${cr} Check release (${{ needs.check_release.result }})\n"
+          BODY=":octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} checks. See [run id ${{ github.run_id }}](${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          echo "$BODY"
+
+  update_failure:
+    name: "Update Status"
+    runs-on: ubuntu-latest
+    needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
+    if: ${{ failure() }}
+    steps:
+      - name: "Update release"
+        run: |
+          TEST_RESULT="passed all project ${{ needs.check_release.outputs.project_num }} checks."
+          if [[ "${{ needs.check_release.result }}" != "success" }} ]]; then TEST_RESULT="did not pass all project ${{ needs.check_release.outputs.project_num }} checks (status: ${{ needs.check_release.result }})."
+        
+          BODY=":octocat: The release `${{ needs.check_release.outputs.release_tag }}` ${TEST_RESULT}."
           
 
 # https://docs.github.com/en/rest/reference/releases#update-a-release

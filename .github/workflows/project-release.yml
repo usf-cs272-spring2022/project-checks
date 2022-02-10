@@ -197,7 +197,11 @@ jobs:
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ always() }}
     steps:
-      - name: "Hello world"
-        run: echo "Hello world"
+      - name: "Update release"
+        run: |
+          if [[ "${{ needs.check_release.result }}" == "success" ]]; then cr=":white_check_mark:"; else cr=":x:"; fi
+          
+          echo "${cr} Check release (${{ needs.check_release.result }})\n"
+          
 
 # https://docs.github.com/en/rest/reference/releases#update-a-release

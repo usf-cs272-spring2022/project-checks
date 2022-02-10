@@ -272,10 +272,7 @@ jobs:
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
-          BODY=":x: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
-          BODY=":x: The release ${{ needs.check_release.outputs.release_tag }} did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
-          echo "$BODY"
-          echo "${{ github.event.release.id }}"
+          BODY=':x: The release \`${{ needs.check_release.outputs.release_tag }}\` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
           
           curl \
             -X PATCH \

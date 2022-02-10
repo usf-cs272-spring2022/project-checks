@@ -28,8 +28,8 @@ jobs:
       project_num: ${{ steps.parse_release.outputs.project_num }}
       reviews_num: ${{ steps.parse_release.outputs.reviews_num }}
       version_num: ${{ steps.parse_release.outputs.version_num }}
-      user_cache: ${{ steps.parse_release.outputs.user_cache }}
-      test_cache: ${{ steps.parse_release.outputs.test_cache }}
+      user_cache: ${{ steps.generate_keys.outputs.user_cache }}
+      test_cache: ${{ steps.generate_keys.outputs.test_cache }}
       
     steps:
       - name: "Check workflow trigger"

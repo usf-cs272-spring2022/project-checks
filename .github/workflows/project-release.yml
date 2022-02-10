@@ -22,18 +22,27 @@ jobs:
       - name: "Check workflow trigger"
         id: check_trigger
         run: |
-          echo "::group::Check workflow trigger"
           echo ""
           echo "Event: ${{ github.event_name }}"
           echo " Type: ${{ github.ref_type }}"
           
-          if [[ "${{ github.event_name }}" == "release" && "${{ github.ref_type }}" == "tag" ]]; then
-            echo ::endgroup::
+          if [[ "${{ github.event_name }}" != "release" || "${{ github.ref_type }}" != "tag" ]]; then
+            echo ""
             echo "::error ::Unexpected workflow trigger. Unable to parse release number!"
+            exit 1
           fi
           
           echo ""
-          echo ::endgroup::
+          
+      - name: "Parse release version"
+        id: parse_release
+        run: |
+          echo ""
+          RELEASE_REF="${{ github.ref }}"
+          RELEASE_TAG="${{ github.ref_name }}"
+          echo "Ref: ${RELEASE_REF}"
+          echo "Tag: ${RELEASE_TAG}"
+          echo ""
 
   check_compile:
     name: "Code Compiles"

@@ -35,10 +35,8 @@ jobs:
       - name: "Check workflow trigger"
         id: check_trigger
         run: |
-          echo ""
           echo "Event: ${{ github.event_name }}"
           echo " Type: ${{ github.ref_type }}"
-          echo ""
 
           if [[ "${{ github.event_name }}" != "release" || "${{ github.ref_type }}" != "tag" ]]; then
             echo "::error ::Unexpected workflow trigger. This workflow only works on release tags."
@@ -48,12 +46,10 @@ jobs:
       - name: "Parse release version"
         id: parse_release
         run: |
-          echo ""
           RELEASE_REF="${{ github.ref }}"
           RELEASE_TAG="${{ github.ref_name }}"
           echo "Ref: ${RELEASE_REF}"
           echo "Tag: ${RELEASE_TAG}"
-          echo ""
           
           if [[ ${RELEASE_TAG} =~ ^v([1-4])\.([0-9]+)\.([0-9]+)$ ]]; then
             PROJECT_NUM=${BASH_REMATCH[1]}
@@ -80,8 +76,6 @@ jobs:
             echo "::error ::Unable to parse project information from tag. Check the tag uses the v#.#.# format in lowercase."
             exit 1
           fi
-          
-          echo ""
           
       - name: "Generate cache keys"
         id: generate_keys

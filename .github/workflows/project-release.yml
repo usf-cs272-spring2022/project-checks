@@ -28,6 +28,8 @@ jobs:
       project_num: ${{ steps.parse_release.outputs.project_num }}
       reviews_num: ${{ steps.parse_release.outputs.reviews_num }}
       version_num: ${{ steps.parse_release.outputs.version_num }}
+      user_cache: ${{ steps.parse_release.outputs.user_cache }}
+      test_cache: ${{ steps.parse_release.outputs.test_cache }}
       
     steps:
       - name: "Check workflow trigger"
@@ -80,6 +82,17 @@ jobs:
           fi
           
           echo ""
+          
+      - name: "Generate cache keys"
+        id: generate_keys
+        run: |
+          USER_SHA=${{ github.sha }}
+          echo "User SHA: ${USER_SHA}"
+          echo "::set-output name=user_cache::project-user-${USER_SHA}"
+          
+          TEST_SHA=$(git ls-remote --refs https://github.com/${{ github.repository_owner }}/project-tests.git main | head -1 | cut -f 1)
+          echo "Test SHA: ${TEST_SHA}"
+          echo "::set-output name=test_cache::project-test-${TEST_SHA}"
 
   check_compile:
     name: "Code Compiles"
@@ -88,6 +101,11 @@ jobs:
     steps:
       - name: "Setup project repository"
         uses: usf-cs272-spring2022/action-project-setup@main
+        with:
+          user_repo: ${{ github.repository }}
+          test_repo: ${{ github.repository_owner }}/project-tests
+          user_cache: ${{ needs.check_release.outputs.user_cache }}
+          test_cache: ${{ needs.check_release.outputs.test_cache }}
     
       - name: "Hello world"
         run: |

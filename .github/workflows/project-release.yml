@@ -201,6 +201,7 @@ jobs:
         run: |
           BODY=":white_check_mark: The release \\\`${{ needs.check_release.outputs.release_tag }}\\\` passed all project ${{ needs.check_release.outputs.project_num }} checks. See [run id ${{ github.run_id }}](${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
           echo "$BODY"
+          echo "${{ github.event.release.id }}"
 
   update_failure:
     name: "Update Status"

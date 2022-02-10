@@ -281,7 +281,7 @@ jobs:
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
-          BODY=':x: The release \`${{ needs.check_release.outputs.release_tag }}\` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+          BODY='{"body":":x: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."}'
           
           curl \
             -X PATCH \
@@ -289,6 +289,6 @@ jobs:
             --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
-            --data "{\"body\":\"${BODY}\"}"
+            --data ${BODY}
 
 # https://docs.github.com/en/rest/reference/releases#update-a-release

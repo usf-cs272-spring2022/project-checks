@@ -86,9 +86,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: check_release
     steps:
-      - name: "Setup project repository"
-        uses: usf-cs272-spring2022/project-setup
-    
       - name: "Hello world"
         run: |
           echo "Hello world"
@@ -103,9 +100,6 @@ jobs:
     runs-on: ubuntu-latest
     needs: check_compile
     steps:
-      - name: "Setup project repository"
-        uses: usf-cs272-spring2022/project-setup
-    
       - name: "Hello world"
         run: echo "Hello world"
 

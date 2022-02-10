@@ -162,11 +162,11 @@ jobs:
           mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_num }}" test
           
           if [[ $? -eq 0 ]]; then
-            echo "These tests are expected to fail!"
-            exit 0
-          else
             echo "::error ::The tests for the next project should not yet pass! You must work on the next project in a separate branch from your current project."
             exit 1
+          else
+            echo "These tests are expected to fail!"
+            exit 0
           fi
 
   check_source_warnings:

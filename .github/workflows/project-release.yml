@@ -209,7 +209,7 @@ jobs:
             --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
-            --data '{"body":"$BODY"}'
+            --data '{"body":"${BODY}"}'
 
   update_failure:
     name: "Update Status"

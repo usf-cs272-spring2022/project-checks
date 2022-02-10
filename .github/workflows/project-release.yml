@@ -16,15 +16,24 @@ jobs:
     name: "Release Number"
     runs-on: ubuntu-latest
     outputs:
-      project_num: ${{ steps.hello_world.outputs.project_num }}
-      project_ver: ${{ steps.hello_world.outputs.project_ver }}
+      project_num: ${{ steps.parse_release.outputs.project_num }}
+      project_ver: ${{ steps.parse_release.outputs.project_ver }}
     steps:
-      - name: "Hello world"
-        id: hello_world
+      - name: "Check workflow trigger"
+        id: check_trigger
         run: |
-          echo "Hello world"
-          echo "::set-output name=project_num::1"
-          echo "::set-output name=project_ver::v1.0.0"
+          echo "::group::Check workflow trigger"
+          echo ""
+          echo "Event: ${{ github.event_name }}"
+          echo " Type: ${{ github.ref_type }}"
+          
+          if [[ "${{ github.event_name }}" == "release" && "${{ github.ref_type }}" == "tag" ]]; then
+            echo ::endgroup::
+            echo "::error ::Unexpected workflow trigger. Unable to parse release number!"
+          fi
+          
+          echo ""
+          echo ::endgroup::
 
   check_compile:
     name: "Code Compiles"

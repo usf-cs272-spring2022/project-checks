@@ -13,17 +13,15 @@ on:
 
 jobs:
   check_issue:
-    name: "Issue"
+    name: "Check Issue"
     runs-on: ubuntu-latest
     steps:
-      - name: "Hello world"
-        id: hello_world
-        run: |
-          echo "Hello world"
-          echo "::set-output name=project_num::1"
-          echo "::set-output name=project_ver::v1.0.0"
-          echo "actor: ${{ github.actor }}"
-          echo "ref: ${{ github.ref }}"
-          echo "ref_type: ${{ github.ref_type }}"
-          echo "repository: ${{ github.repository }}"
-          echo "event: ${{ toJson(github.event) }}"
+      - uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: ':octocat: This action is not yet working. Please reach out on Piazza!'
+            })

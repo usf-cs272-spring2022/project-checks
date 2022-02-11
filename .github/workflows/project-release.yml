@@ -297,6 +297,7 @@ jobs:
     name: "Update Release"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
+    if: ${{ always() }}
     steps:
       - uses: actions/github-script@v5
         env:

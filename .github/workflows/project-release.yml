@@ -293,13 +293,13 @@ jobs:
         if: ${{ needs.check_tests.result == 'success' }}
         run: |
           MESSAGE=':octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review.'
-          echo "END_RESULT=${MESSAGE}" >> $GITHUB_ENV
+          echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
   
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
           MESSAGE=':x: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests.'
-          echo "END_RESULT=${MESSAGE}" >> $GITHUB_ENV
+          echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
   
   update_release:
     name: "Update Release"
@@ -315,4 +315,4 @@ jobs:
             --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
-            --data '{"body": "${{ env.END_RESULT }} ${{ env.RUN_DETAIL }}"}'
+            --data '{"body": "${{ env.MESSAGE }} ${{ env.RUN_DETAIL }}"}'

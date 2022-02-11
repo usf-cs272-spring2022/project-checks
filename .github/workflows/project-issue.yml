@@ -15,5 +15,5 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: ':octocat: Hi @{{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.'
+              body: ':octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.'
             })

@@ -287,16 +287,16 @@ jobs:
         if: ${{ always() }}
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;'
+          GREP_STATUS=0
+          grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;' || GREP_STATUS=$?
           
-          if [[ $? -ne 1 ]]; then
+          if [[ GREP_STATUS -ne 1 ]]; then
             echo "::error ::Your code should not print exception stack traces."
             exit 1
-          else
-            echo "Found 0 stack traces."
-            exit 0
           fi
-
+          
+          echo "Found 0 stack traces."
+        
   update_release:
     name: "Update Release"
     runs-on: ubuntu-latest

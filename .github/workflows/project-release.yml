@@ -308,8 +308,7 @@ jobs:
       - name: "Update status"
         id: update_status
         run: |
-          MESSAGE='Eligibility: :white_check_mark: Project Test, :white_check_mark: Project Review%0AThe release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests and checks. This release may be used to request a project test grade or request code review.'
-          echo "::set-output name=check_status::${MESSAGE}"
+          echo "::set-output name=check_status::REVIEW_OK"
           echo "${MESSAGE}"
   
   update_failure:
@@ -324,20 +323,17 @@ jobs:
         id: update_success
         if: ${{ needs.check_tests.result == 'success' }}
         run: |
-          MESSAGE='Eligibility: :white_check_mark: Project Test, :x: Project Review%0A:octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.'
-          echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
+          echo "STATUS=TESTS_OK" >> $GITHUB_ENV
   
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
-          MESSAGE='Eligibility: :x: Project Test, :x: Project Review%0A:warning: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. This release may not be used to request a grade or code review.'
-          echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
+          echo "STATUS=FAILURE" >> $GITHUB_ENV
       
       - name: "Update status"
         id: update_status
         run: |
-          echo "${MESSAGE}"
-          echo "::set-output name=check_status::${MESSAGE}"
+          echo "::set-output name=check_status::${STATUS}"
   
   update_release:
     name: "Update Release"
@@ -346,15 +342,21 @@ jobs:
     if: ${{ always() }}
     steps:
       - uses: actions/github-script@v5
+        env:
+          PROJECT_NUM: ${{ needs.check_release.outputs.project_num }}
+          CHECK_STATUS: ${{ needs.update_success.outputs.check_status }}${{ needs.update_failure.outputs.check_status }}
         with:
           script: |
             console.log(context.payload.release.id);
             console.log(context.payload.repository.name);
             console.log(context.payload.organization.login);
             console.log(context);
+            console.log(process.env);
             
             let body = `
-              hello world
+              **Eligibility:** :x: Project Test, :x: Project Review
+              
+              :warning: The release \`${context.payload.release.tag_name}\` did **NOT** pass all project ?? tests. This release may not be used to request a grade or code review.
             `;
             
             console.log(body);

@@ -300,7 +300,7 @@ jobs:
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
           MESSAGE='Eligibility: :x: Project Test, :x: Project Review%0A:warning: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. This release may not be used to request a grade or code review.'
-          echo "::set-output name=message::${MESSAGE}"
+          echo "::set-output name=message::hello"
           echo "${MESSAGE}"
   
   update_release:

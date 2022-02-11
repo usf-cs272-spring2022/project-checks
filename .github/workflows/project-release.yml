@@ -355,7 +355,7 @@ jobs:
             let body = `
               **Eligibility:** :x: Project Test, :x: Project Review
               
-              :warning: The release \`${context.payload.release.tag_name}\` did **NOT** pass all project ?? tests. This release may not be used to request a grade or code review.
+              :warning: The release \`${context.payload.release.tag_name}\` did **NOT** pass all project ${ process.env.PROJECT_NUM } tests. This release may not be used to request a grade or code review. ${ process.env.RUN_DETAIL }
             `;
             
             console.log(body);

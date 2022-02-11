@@ -315,6 +315,17 @@ jobs:
             console.log(process.env.TESTS_OKAY);
             console.log(process.env.CHECKS_OKAY);
             
+            let message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project 1 tests. This release may not be used to request a grade or code review.`;
+            
+            if (process.env.TESTS_OKAY === 'true') {
+              if (process.env.CHECK === 'true') {
+                message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests and checks. This release may be used to request a project test grade or request code review.`;
+              }
+              else {
+                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } testsbut did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
+              }
+            }
+            
             let body = `
             ## Eligibility
 
@@ -323,7 +334,9 @@ jobs:
 
             ## Status
   
-            :warning: The release `v1.0.2` did **NOT** pass all project 1 tests. ${ process.env.RUN_DETAIL }
+            ${ message } 
+            
+            ${ process.env.RUN_DETAIL }
             `;
             
             console.log(body);

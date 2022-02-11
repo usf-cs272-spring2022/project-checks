@@ -309,7 +309,9 @@ jobs:
     needs: [update_success, update_failure]
     if: ${{ always() }}
     steps:
-      - run: echo "${{ toJSON(needs.update_failure.outputs) }}"
+      - run: |
+          echo "${{ toJSON(needs.update_failure) }}"
+          echo "${{ toJSON(needs.update_success) }}"
       - name: "Update release body"
         run: |
           curl \

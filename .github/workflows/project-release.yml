@@ -268,7 +268,7 @@ jobs:
             exit 1
           fi
           
-          exit 0
+          echo "Found 0 main methods."
 
       - name: "Check extra TODO comments"
         if: ${{ always() }}
@@ -281,7 +281,7 @@ jobs:
             exit 1
           fi
           
-          exit 0
+          echo "Found 0 TODO comments."
 
       - name: "Check for stack traces"
         if: ${{ always() }}
@@ -292,9 +292,10 @@ jobs:
           if [[ $? -ne 1 ]]; then
             echo "::error ::Your code should not print exception stack traces."
             exit 1
+          else
+            echo "Found 0 stack traces."
+            exit 0
           fi
-          
-          exit 0
 
   update_release:
     name: "Update Release"

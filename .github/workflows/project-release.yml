@@ -301,6 +301,9 @@ jobs:
           MESSAGE=':x: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests.'
           echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
   
+      - run: |
+          echo "HI ${MESSAGE} HI"
+  
   update_release:
     name: "Update Release"
     runs-on: ubuntu-latest

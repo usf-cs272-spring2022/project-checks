@@ -172,7 +172,7 @@ jobs:
           mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_num }}" test
 
           if [[ $? -ne 0 ]]; then
-            echo "::error ::One or more tests for the past project did not pass."
+            echo "::error ::One or more tests for the past project did not pass. Your code must still support the functionality of past projects."
             exit 1
           fi
 
@@ -181,12 +181,9 @@ jobs:
         run: |
           mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_num }}" test
           
-          if [[ $? -eq 0 ]]; then
-            echo "::error ::The tests for the next project should not yet pass! You must work on the next project in a separate branch from your current project."
+          if [[ $? -ne 0 ]]; then
+            echo "::error ::One or more tests for the next project did not pass. Your code should not yet support the functionality of the next project."
             exit 1
-          else
-            echo "These tests are expected to fail!"
-            exit 0
           fi
 
   check_source_warnings:
@@ -270,6 +267,8 @@ jobs:
             echo "::error ::Except for Driver.java, you should delete old main methods from your code."
             exit 1
           fi
+          
+          exit 0
 
       - name: "Check extra TODO comments"
         if: ${{ always() }}
@@ -281,6 +280,8 @@ jobs:
             echo "::error ::You should delete old TODO comments from your code."
             exit 1
           fi
+          
+          exit 0
 
       - name: "Check for stack traces"
         if: ${{ always() }}
@@ -292,6 +293,8 @@ jobs:
             echo "::error ::Your code should not print exception stack traces."
             exit 1
           fi
+          
+          exit 0
 
   update_release:
     name: "Update Release"

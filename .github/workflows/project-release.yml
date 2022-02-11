@@ -254,7 +254,6 @@ jobs:
     name: "Code Style"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile]
-    if: ${{ false }}
     steps:
       - name: "Setup project repository"
         id: "setup-project"

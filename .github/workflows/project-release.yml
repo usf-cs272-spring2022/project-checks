@@ -319,7 +319,7 @@ jobs:
                 message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests and checks. This release may be used to request a project test grade or request code review.`;
               }
               else {
-                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } testsbut did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
+                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
               }
             }
             

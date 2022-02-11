@@ -2,14 +2,6 @@ name: "Check project issue"
 
 on:
   workflow_call:
-    outputs:
-      project_num:
-        description: "The project number (e.g. 1, 2, 3a, 3b, or 4)."
-        value: ${{ jobs.check_release.outputs.project_num }}
-         
-      project_ver:
-        description: "The project version (e.g. v1.0.0)."
-        value: ${{ jobs.check_release.outputs.project_ver }}
 
 jobs:
   check_issue:

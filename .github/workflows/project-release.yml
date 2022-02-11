@@ -348,4 +348,13 @@ jobs:
       - uses: actions/github-script@v5
         with:
           script: |
+            console.log(context.payload.release.id);
+            console.log(context.payload.repository.name);
+            console.log(context.payload.organization.login);
             console.log(context);
+            
+            let body = '''
+              hello 
+              world
+            ''';
+            console.log(body);

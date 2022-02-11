@@ -293,16 +293,16 @@ jobs:
         if: ${{ needs.check_tests.result == 'success' }}
         run: |
           MESSAGE=':octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review.'
-          echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
+          echo "END_RESULT=${MESSAGE}" >> $GITHUB_ENV
   
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
           MESSAGE=':x: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests.'
-          echo "MESSAGE=${MESSAGE}" >> $GITHUB_ENV
+          echo "END_RESULT=${MESSAGE}" >> $GITHUB_ENV
   
       - run: |
-          echo "HI ${MESSAGE} HI"
+          echo "HI ${END_RESULT} HI"
   
   update_release:
     name: "Update Release"

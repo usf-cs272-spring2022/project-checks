@@ -272,6 +272,7 @@ jobs:
           fi
 
       - name: "Check extra TODO comments"
+        if: ${{ always() }}
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
           grep -rnoE '(//|\*)?\s*TODO.*$'
@@ -282,6 +283,7 @@ jobs:
           fi
 
       - name: "Check for stack traces"
+        if: ${{ always() }}
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
           grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;'

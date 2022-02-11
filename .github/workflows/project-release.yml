@@ -261,9 +261,10 @@ jobs:
       - name: "Check extra main methods"
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          grep -rnoE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\('
+          GREP_STATUS=0
+          grep -rnoE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\(' || GREP_STATUS=$?
           
-          if [[ $? -ne 1 ]]; then
+          if [[ GREP_STATUS -ne 1 ]]; then
             echo "::error ::Except for Driver.java, you should delete old main methods from your code."
             exit 1
           fi
@@ -274,9 +275,10 @@ jobs:
         if: ${{ always() }}
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          grep -rnoE '(//|\*)?\s*TODO.*$'
+          GREP_STATUS=0
+          grep -rnoE '(//|\*)?\s*TODO.*$' || GREP_STATUS=$?
           
-          if [[ $? -ne 1 ]]; then
+          if [[ GREP_STATUS -ne 1 ]]; then
             echo "::error ::You should delete old TODO comments from your code."
             exit 1
           fi

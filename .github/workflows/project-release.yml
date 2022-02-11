@@ -264,7 +264,7 @@ jobs:
       - name: "Check extra main methods"
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          grep -rnoiE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\('
+          grep -rnoE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\('
           
           if [[ $? -ne 1 ]]; then
             echo "::error ::Except for Driver.java, you should delete old main methods from your code."
@@ -274,10 +274,20 @@ jobs:
       - name: "Check extra TODO comments"
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          grep -rnoiE '(//|\*)?\s*TODO.*$'
+          grep -rnoE '(//|\*)?\s*TODO.*$'
           
           if [[ $? -ne 1 ]]; then
             echo "::error ::You should delete old TODO comments from your code."
+            exit 1
+          fi
+
+      - name: "Check for stack traces"
+        working-directory: ${{ env.USER_PATH }}/src/main/java
+        run: |
+          grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;'
+          
+          if [[ $? -ne 1 ]]; then
+            echo "::error ::Your code should not print exception stack traces."
             exit 1
           fi
 
@@ -286,11 +296,14 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ success() }}
+    outputs:
+      check_status: ${{ steps.update_status.outputs.check_status }}
     steps:
       - name: "Update status"
+        id: update_status
         run: |
           MESSAGE='Eligibility: :white_check_mark: Project Test, :white_check_mark: Project Review%0AThe release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests and checks. This release may be used to request a project test grade or request code review.'
-          echo "::set-output name=message::${MESSAGE}"
+          echo "::set-output name=check_status::${MESSAGE}"
           echo "${MESSAGE}"
   
   update_failure:
@@ -298,24 +311,25 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ failure() || cancelled() }}
+    outputs:
+      check_status: ${{ steps.update_status.outputs.check_status }}
     steps:
-      - run: echo "::set-output name=potato::pocket"
-      
       - name: "Update test success"
+        id: update_success
         if: ${{ needs.check_tests.result == 'success' }}
         run: |
-          echo "::set-output name=why::please"
           MESSAGE='Eligibility: :white_check_mark: Project Test, :x: Project Review%0A:octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.'
-          echo "::set-output name=message::${MESSAGE}"
-          echo "${MESSAGE}"
   
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
-          echo "::set-output name=hello::hello"
           MESSAGE='Eligibility: :x: Project Test, :x: Project Review%0A:warning: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. This release may not be used to request a grade or code review.'
-          echo "::set-output name=world::world"
+      
+      - name: "Update status"
+        id: update_status
+        run: |
           echo "${MESSAGE}"
+          echo "::set-output name=check_status::${MESSAGE}"
   
   update_release:
     name: "Update Release"

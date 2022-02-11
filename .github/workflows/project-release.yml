@@ -279,8 +279,9 @@ jobs:
     steps:
       - name: "Update status"
         run: |
-          MESSAGE='Eligibility: :white_check_mark: Project Test, :white_check_mark: Project Review\nThe release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests and checks. This release may be used to request a project test grade or request code review.'
+          MESSAGE='Eligibility: :white_check_mark: Project Test, :white_check_mark: Project Review%0AThe release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests and checks. This release may be used to request a project test grade or request code review.'
           echo "::set-output name=message::${MESSAGE}"
+          echo "${MESSAGE}"
   
   update_failure:
     name: "Update Failure"
@@ -291,14 +292,16 @@ jobs:
       - name: "Update test success"
         if: ${{ needs.check_tests.result == 'success' }}
         run: |
-          MESSAGE='Eligibility: :white_check_mark: Project Test, :x: Project Review\n:octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.'
+          MESSAGE='Eligibility: :white_check_mark: Project Test, :x: Project Review%0A:octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.'
           echo "::set-output name=message::${MESSAGE}"
+          echo "${MESSAGE}"
   
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
-          MESSAGE='Eligibility: :x: Project Test, :x: Project Review\n:warning: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. This release may not be used to request a grade or code review.'
+          MESSAGE='Eligibility: :x: Project Test, :x: Project Review%0A:warning: The release `${{ needs.check_release.outputs.release_tag }}` did **NOT** pass all project ${{ needs.check_release.outputs.project_num }} tests. This release may not be used to request a grade or code review.'
           echo "::set-output name=message::${MESSAGE}"
+          echo "${MESSAGE}"
   
   update_release:
     name: "Update Release"
@@ -315,3 +318,7 @@ jobs:
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
             --data '{"body": "${{ needs.update_success.outputs.message }}${{ needs.update_failure.outputs.message }} ${{ env.RUN_DETAIL }}"}'
+            
+      - name: "Add annotation"
+        run: |
+          echo "::notice ::${{ needs.update_success.outputs.message }}${{ needs.update_failure.outputs.message }}"

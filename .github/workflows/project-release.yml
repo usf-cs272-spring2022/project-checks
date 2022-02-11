@@ -22,7 +22,7 @@ on:
 env:
   USER_PATH: project-main
   TEST_PATH: project-tests
-  END_RESULT: ":warning: The checks for release `${{ needs.check_release.outputs.release_tag }}` did not complete properly."
+  END_RESULT: ":warning: The checks for release `${{ github.ref_name }}` did not complete properly."
   RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
 
 jobs:

@@ -307,19 +307,23 @@ jobs:
           TESTS_OKAY: ${{ needs.check_tests.result == 'success' }}
           CHECK_OKAY: ${{ needs.check_source_warnings.result == 'success' && needs.check_javadoc_warnings.result == 'success' && needs.check_code_style.result == 'success' }}
           PROJECT_NUM: ${{ needs.check_release.outputs.project_num }}
-          CHECK_STATUS: ${{ needs.update_success.outputs.check_status }}${{ needs.update_failure.outputs.check_status }}
         with:
           script: |
             console.log(context.payload.release.id);
             console.log(context.payload.repository.name);
             console.log(context.payload.organization.login);
-            console.log(context);
-            console.log(process.env);
+            console.log(process.env.TESTS_OKAY);
+            console.log(process.env.CHECKS_OKAY);
             
             let body = `
-              **Eligibility:** :x: Project Test, :x: Project Review
-              
-              :warning: The release \`${context.payload.release.tag_name}\` did **NOT** pass all project ${ process.env.PROJECT_NUM } tests. This release may not be used to request a grade or code review. ${ process.env.RUN_DETAIL }
+            ## Eligibility
+
+              - [${process.env.TESTS_OKAY == 'true' ? 'x' : ' '}] Project Test
+              - [${process.env.TESTS_OKAY == 'true' && process.env.CHECKS_OKAY == 'true' ? 'x' : ' '}] Project Review
+
+            ## Status
+  
+            :warning: The release `v1.0.2` did **NOT** pass all project 1 tests. ${ process.env.RUN_DETAIL }
             `;
             
             console.log(body);

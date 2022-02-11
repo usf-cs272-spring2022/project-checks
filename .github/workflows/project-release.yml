@@ -22,7 +22,7 @@ on:
 env:
   USER_PATH: project-main
   TEST_PATH: project-tests
-  END_RESULT: ':warning: The checks for release `${{ needs.check_release.outputs.release_tag }}` did not complete properly.'
+  END_RESULT: ":warning: The checks for release `${{ needs.check_release.outputs.release_tag }}` did not complete properly."
   RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
 
 jobs:
@@ -282,7 +282,7 @@ jobs:
         run: |
           MESSAGE=':white_check_mark: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} checks.'
           echo "END_RESULT=${MESSAGE}" >> $GITHUB_ENV
-          
+  
   update_failure:
     name: "Update Failure"
     runs-on: ubuntu-latest
@@ -294,7 +294,7 @@ jobs:
         run: |
           MESSAGE=':octocat: The release `${{ needs.check_release.outputs.release_tag }}` passed all project ${{ needs.check_release.outputs.project_num }} tests, but did not pass one or more of the other checks required for code review.'
           echo "END_RESULT=${MESSAGE}" >> $GITHUB_ENV
-
+  
       - name: "Update test failure"
         if: ${{ needs.check_tests.result != 'success' }}
         run: |
@@ -316,8 +316,3 @@ jobs:
             --header 'content-type: application/json' \
             --url https://api.github.com/repos/${{ github.repository }}/releases/${{ github.event.release.id }} \
             --data '{"body": "${{ env.END_RESULT }} ${{ env.RUN_DETAIL }}"}'
-
-# output action result
-# fix up updating release
-# fix up error annotations (so many)
-# https://docs.github.com/en/rest/reference/releases#update-a-release

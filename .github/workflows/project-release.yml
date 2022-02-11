@@ -353,8 +353,8 @@ jobs:
             console.log(context.payload.organization.login);
             console.log(context);
             
-            let body = '''
-              hello 
-              world
-            ''';
+            let body = `
+              hello world
+            `;
+            
             console.log(body);

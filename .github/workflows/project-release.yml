@@ -7,7 +7,7 @@ on:
         description: "The project number (e.g. 1, 2, 3, or 4)."
         value: ${{ jobs.check_release.outputs.project_num }}
 
-      project_num:
+      project_ver:
         description: "The project version (e.g. 1, 2, 3a, 3b, or 4)."
         value: ${{ jobs.check_release.outputs.project_ver }}
 
@@ -201,7 +201,7 @@ jobs:
       - name: "Run current project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="test${{ needs.check_release.outputs.project_num }}" test
+          mvn -ntp -Dgroups="test${{ needs.check_release.outputs.project_ver }}" test
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for this project did not pass."
@@ -211,7 +211,7 @@ jobs:
       - name: "Run previous project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_num }}" test
+          mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_ver }}" test
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for the past project did not pass. Your code must still support the functionality of past projects."
@@ -221,7 +221,7 @@ jobs:
       - name: "Run next project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_num }}" test
+          mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_ver }}" test
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for the next project did not pass. Your code should not yet support the functionality of the next project."
@@ -351,17 +351,17 @@ jobs:
         env:
           TESTS_OKAY: ${{ needs.check_tests.result == 'success' }}
           CHECK_OKAY: ${{ needs.check_source_warnings.result == 'success' && needs.check_javadoc_warnings.result == 'success' && needs.check_code_style.result == 'success' }}
-          PROJECT_NUM: ${{ needs.check_release.outputs.project_num }}
+          PROJECT_VER: ${{ needs.check_release.outputs.project_ver }}
         with:
           script: |
             let message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project 1 tests. This release may not be used to request a grade or code review.`;
 
             if (process.env.TESTS_OKAY === 'true') {
               if (process.env.CHECK === 'true') {
-                message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests and checks. This release may be used to request a project test grade or request code review.`;
+                message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests and checks. This release may be used to request a project test grade or request code review.`;
               }
               else {
-                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
+                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
               }
             }
 

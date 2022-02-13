@@ -3,9 +3,99 @@ name: "Check project issue"
 on:
   workflow_call:
 
+env:
+  # project tests and first code review deadlines
+  PROJECT_1_TESTS:  "2022-03-01"
+  PROJECT_1_REVIEW: "2022-03-08"
+  PROJECT_2_TESTS:  "2022-03-29"
+  PROJECT_2_REVIEW: "2022-04-05"
+  PROJECT_3_TESTS:  "2022-04-19"
+  PROJECT_3_REVIEW: "2022-04-26"
+  PROJECT_4_TESTS:  "2022-05-10"
+
+  LATE_TESTS_POINTS:  "2" # number of points per deduction (tests)
+  LATE_TESTS_DAYS:    "1" # number of days late per deduction (tests)
+
+  LATE_REVIEW_POINTS: "5" # number of points per deduction (first code review)
+  LATE_REVIEW_DAYS:   "3" # number of days late per deduction (first code review)
+
+  LATE_MAX_GAP:      "10" # maximum gap in between code reviews
+  LATE_MAX_POINTS:   "26" # maximum number of points to deduct
+
+  ASSIGNEES: "['sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon']"
+
 jobs:
   check_issue:
-    name: "Check Issue"
+    name: "Issue"
+    runs-on: ubuntu-latest
+
+    outputs:
+      name: ${{ steps.check_body.outputs.name }}
+      user: ${{ steps.check_body.outputs.user }}
+
+      release: ${{ steps.check_title.outputs.title }}
+
+      release: ${{ steps.check_labels.outputs.release }}
+      reviews: ${{ steps.check_labels.outputs.reviews }}
+      grade:   ${{ steps.check_labels.outputs.grade }}
+      branch:  ${{ steps.check_labels.outputs.branch }}
+
+    steps:
+      - name: "Check issue body"
+        id: check_body
+        run: |
+          echo "Hello world"
+
+      - name: "Check issue title"
+        id: check_title
+        run: |
+          echo "Hello world"
+
+      - name: "Check issue labels"
+        id: check_labels
+        run: |
+          echo "Hello world"
+
+  check_release:
+    name: "Release"
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_issue.outputs.release == "true" }}
+    needs: [check_issue]
+    steps:
+      - name: "Hello world"
+        run: echo "Hello world"
+
+  check_reviews:
+    name: "Reviews"
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_issue.outputs.reviews == "true" }}
+    needs: [check_issue]
+    steps:
+      - name: "Hello world"
+        run: echo "Hello world"
+
+  make_grade:
+    name: "Grade"
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_issue.outputs.grade == "true" }}
+    needs: [check_issue, check_release, check_reviews]
+    steps:
+      - name: "Hello world"
+        run: echo "Hello world"
+
+  make_branch:
+    name: "Branch"
+    if: ${{ needs.check_issue.outputs.branch == "true" }}
+    needs: [check_issue, check_release, check_reviews]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Hello world"
+        run: echo "Hello world"
+
+  check_status:
+    name: "Status"
+    if: ${{ always() }}
+    needs: [check_issue, check_release, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v5

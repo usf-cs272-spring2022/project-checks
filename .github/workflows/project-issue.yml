@@ -35,7 +35,7 @@ jobs:
 
       release: ${{ steps.check_title.outputs.title }}
 
-      release: ${{ steps.check_labels.outputs.release }}
+      action:  ${{ steps.check_labels.outputs.action }}
       reviews: ${{ steps.check_labels.outputs.reviews }}
       grade:   ${{ steps.check_labels.outputs.grade }}
       branch:  ${{ steps.check_labels.outputs.branch }}
@@ -56,10 +56,10 @@ jobs:
         run: |
           echo "Hello world"
 
-  check_release:
-    name: "Release"
+  check_action:
+    name: "Action"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.release == "true" }}
+    if: ${{ needs.check_issue.outputs.action == "true" }}
     needs: [check_issue]
     steps:
       - name: "Hello world"
@@ -78,7 +78,7 @@ jobs:
     name: "Grade"
     runs-on: ubuntu-latest
     if: ${{ needs.check_issue.outputs.grade == "true" }}
-    needs: [check_issue, check_release, check_reviews]
+    needs: [check_issue, check_action, check_reviews]
     steps:
       - name: "Hello world"
         run: echo "Hello world"
@@ -86,7 +86,7 @@ jobs:
   make_branch:
     name: "Branch"
     if: ${{ needs.check_issue.outputs.branch == "true" }}
-    needs: [check_issue, check_release, check_reviews]
+    needs: [check_issue, check_action, check_reviews]
     runs-on: ubuntu-latest
     steps:
       - name: "Hello world"
@@ -95,7 +95,7 @@ jobs:
   check_status:
     name: "Status"
     if: ${{ always() }}
-    needs: [check_issue, check_release, check_reviews, make_grade, make_branch]
+    needs: [check_issue, check_action, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v5

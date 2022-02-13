@@ -67,7 +67,7 @@ jobs:
     name: "Actions"
     runs-on: ubuntu-latest
     needs: [check_issue]
-    if: ${{ needs.check_issue.outputs.actions != "false" }}
+    if: ${{ needs.check_issue.outputs.actions != 'false' }}
     steps:
       - name: "Hello world"
         run: echo "Hello world"
@@ -75,7 +75,7 @@ jobs:
   check_reviews:
     name: "Reviews"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.reviews != "false" }}
+    if: ${{ needs.check_issue.outputs.reviews != 'false' }}
     needs: [check_issue]
     steps:
       - name: "Hello world"
@@ -84,7 +84,7 @@ jobs:
   make_grade:
     name: "Grade"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.grade != "false" }}
+    if: ${{ needs.check_issue.outputs.grade != 'false' }}
     needs: [check_issue, check_actions, check_reviews]
     steps:
       - name: "Hello world"
@@ -92,7 +92,7 @@ jobs:
 
   make_branch:
     name: "Branch"
-    if: ${{ needs.check_issue.outputs.branch != "false" }}
+    if: ${{ needs.check_issue.outputs.branch != 'false' }}
     needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
     steps:

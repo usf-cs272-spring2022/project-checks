@@ -35,7 +35,7 @@ jobs:
 
       release: ${{ steps.check_title.outputs.title }}
 
-      action:  ${{ steps.check_labels.outputs.action }}
+      action:  ${{ steps.check_labels.outputs.actions }}
       reviews: ${{ steps.check_labels.outputs.reviews }}
       grade:   ${{ steps.check_labels.outputs.grade }}
       branch:  ${{ steps.check_labels.outputs.branch }}
@@ -45,22 +45,29 @@ jobs:
         id: check_body
         run: |
           echo "Hello world"
+          echo "::set-output name=name::Pending"
+          echo "::set-output name=user::Pending"
 
       - name: "Check issue title"
         id: check_title
         run: |
           echo "Hello world"
+          echo "::set-output name=release::Pending"
 
       - name: "Check issue labels"
         id: check_labels
         run: |
           echo "Hello world"
+          echo "::set-output name=actions::false"
+          echo "::set-output name=reviews::false"
+          echo "::set-output name=grade::false"
+          echo "::set-output name=branch::false"
 
-  check_action:
-    name: "Action"
+  check_actions:
+    name: "Actions"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.action == "true" }}
     needs: [check_issue]
+    if: ${{ needs.check_issue.outputs.actions != "false" }}
     steps:
       - name: "Hello world"
         run: echo "Hello world"
@@ -68,7 +75,7 @@ jobs:
   check_reviews:
     name: "Reviews"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.reviews == "true" }}
+    if: ${{ needs.check_issue.outputs.reviews != "false" }}
     needs: [check_issue]
     steps:
       - name: "Hello world"
@@ -77,16 +84,16 @@ jobs:
   make_grade:
     name: "Grade"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.grade == "true" }}
-    needs: [check_issue, check_action, check_reviews]
+    if: ${{ needs.check_issue.outputs.grade != "false" }}
+    needs: [check_issue, check_actions, check_reviews]
     steps:
       - name: "Hello world"
         run: echo "Hello world"
 
   make_branch:
     name: "Branch"
-    if: ${{ needs.check_issue.outputs.branch == "true" }}
-    needs: [check_issue, check_action, check_reviews]
+    if: ${{ needs.check_issue.outputs.branch != "false" }}
+    needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
     steps:
       - name: "Hello world"
@@ -95,7 +102,7 @@ jobs:
   check_status:
     name: "Status"
     if: ${{ always() }}
-    needs: [check_issue, check_action, check_reviews, make_grade, make_branch]
+    needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v5

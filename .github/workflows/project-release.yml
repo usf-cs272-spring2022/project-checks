@@ -342,7 +342,7 @@ jobs:
           echo "Found 0 stack traces."
 
   update_release:
-    name: "Update Release"
+    name: "Status"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ always() }}

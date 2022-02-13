@@ -35,7 +35,7 @@ jobs:
 
       release: ${{ steps.check_title.outputs.title }}
 
-      action:  ${{ steps.check_labels.outputs.actions }}
+      actions: ${{ steps.check_labels.outputs.actions }}
       reviews: ${{ steps.check_labels.outputs.reviews }}
       grade:   ${{ steps.check_labels.outputs.grade }}
       branch:  ${{ steps.check_labels.outputs.branch }}
@@ -56,12 +56,13 @@ jobs:
 
       - name: "Check issue labels"
         id: check_labels
-        run: |
-          echo "Hello world"
-          echo "::set-output name=actions::false"
-          echo "::set-output name=reviews::false"
-          echo "::set-output name=grade::false"
-          echo "::set-output name=branch::false"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            core.setOutput('actions', 'false');
+            core.setOutput('reviews', 'false');
+            core.setOutput('grade', 'false');
+            core.setOutput('branch', 'false');
 
   check_actions:
     name: "Actions"

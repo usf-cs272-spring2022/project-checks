@@ -71,9 +71,9 @@ jobs:
             }
 
             // only errors will get this far
-            const text_message = `Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.join(', ')}`;
+            const text_message = `Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`;
 
-            const long_message = `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
+            const long_message = `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
 
             labels.push('error');
 

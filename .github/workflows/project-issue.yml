@@ -32,15 +32,9 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      actions: ${{ steps.check_labels.outputs.actions }}
-      reviews: ${{ steps.check_labels.outputs.reviews }}
-      branch:  ${{ steps.check_labels.outputs.branch }}
-      grade:   ${{ steps.check_labels.outputs.grade }}
       label:   ${{ steps.check_labels.outputs.label }}
-
-      name: ${{ steps.check_body.outputs.name }}
-      user: ${{ steps.check_body.outputs.user }}
-
+      name:    ${{ steps.check_body.outputs.name }}
+      user:    ${{ steps.check_body.outputs.user }}
       release: ${{ steps.check_title.outputs.title }}
 
     steps:
@@ -170,7 +164,7 @@ jobs:
     name: "Actions"
     runs-on: ubuntu-latest
     needs: [check_issue]
-    if: ${{ needs.check_issue.outputs.actions == 'checks' || needs.check_issue.outputs.actions == 'tests' }}
+    if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'review-request' }}
     steps:
       - name: "Hello world"
         run: echo "Hello world"
@@ -178,7 +172,7 @@ jobs:
   check_reviews:
     name: "Reviews"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.reviews == 'approved' || needs.check_issue.outputs.reviews == 'passed' }}
+    if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'review-request' }}
     needs: [check_issue]
     steps:
       - name: "Hello world"
@@ -187,7 +181,7 @@ jobs:
   make_grade:
     name: "Grade"
     runs-on: ubuntu-latest
-    if: ${{ !failure() && needs.check_issue.outputs.grade == 'grade' }}
+    if: ${{ !failure() && (needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'grade-review') }}
     needs: [check_issue, check_actions, check_reviews]
     steps:
       - name: "Hello world"
@@ -195,55 +189,9 @@ jobs:
 
   make_branch:
     name: "Branch"
-    if: ${{ !failure() && needs.check_issue.outputs.branch == 'branch' }}
+    if: ${{ !failure() && needs.check_issue.outputs.label == 'request-review' }}
     needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
     steps:
       - name: "Hello world"
         run: echo "Hello world"
-
-  check_status:
-    name: "Status"
-    if: ${{ always() }}
-    needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/github-script@v5
-        with:
-          script: |
-            let run_details = 'See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.';
-
-            let message = `:octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.`;
-
-            let success = {
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number
-            };
-
-            let assignees = ['sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon'];
-            let labels = [];
-
-            // add existing label if exists
-            if ('${{ needs.check_issue.outputs.label }}') {
-              labels.push('${{ needs.check_issue.outputs.label }}');
-            }
-
-            if ('${{ needs.check_issue.result }}' != 'success') {
-              message = `:no_entry: @${{ github.actor }} there was a problem with your issue and we are unable to process your request. ${run_details} After fixing the problem, you can re-trigger this action by closing and re-opening this issue.`;
-
-              // update issue
-              details.state = 'closed';
-              details.assignees = ['${{ github.actor }}'];
-              details.labels = labels;
-              details.labels.push('error');
-            }
-
-            github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: message
-            });
-
-            github.rest.issues.update(details);

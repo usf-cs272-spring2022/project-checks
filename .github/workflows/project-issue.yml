@@ -30,17 +30,61 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      name: ${{ steps.check_body.outputs.name }}
-      user: ${{ steps.check_body.outputs.user }}
-
-      release: ${{ steps.check_title.outputs.title }}
-
       actions: ${{ steps.check_labels.outputs.actions }}
       reviews: ${{ steps.check_labels.outputs.reviews }}
       grade:   ${{ steps.check_labels.outputs.grade }}
       branch:  ${{ steps.check_labels.outputs.branch }}
 
+      name: ${{ steps.check_body.outputs.name }}
+      user: ${{ steps.check_body.outputs.user }}
+
+      release: ${{ steps.check_title.outputs.title }}
+
     steps:
+      - name: "Check issue labels"
+        id: check_labels
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let actions = 'false';
+            let reviews = 'false';
+            let grade = 'false';
+            let branch = 'false';
+
+            const labels = await github.rest.issues.listLabelsOnIssue({
+              owner: context.repo.owner,
+              repo:  context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            if (labels.status != 200) {
+              core.setFailed(`Unable to check issue #${context.issue.number} labels. Status: ${labels.status}`);
+            }
+
+            if (labels.data.length != 1) {
+              core.setFailed(`This workflow is not configured to respond to this issue. Labels: ${labels.data.map(e => e.name).join(", ")}`);
+            }
+            else if (labels.data[0].name == 'review-request') {
+
+            }
+            else if (labels.data[0].name == 'grade-test') {
+
+            }
+            else if (labels.data[0].name == 'grade-review') {
+
+            }
+            else if (labels.data[0].name == 'grade-release') {
+
+            }
+            else {
+              core.setFailed(`This workflow is not configured to respond to this issue label: ${labels.data[0].name}`);
+            }
+
+            core.setOutput('actions', actions);
+            core.setOutput('reviews', reviews);
+            core.setOutput('grade', grade);
+            core.setOutput('branch', branch);
+
       - name: "Check issue body"
         id: check_body
         run: |
@@ -54,23 +98,6 @@ jobs:
           echo "Hello world"
           echo "::set-output name=release::Pending"
 
-      - name: "Check issue labels"
-        id: check_labels
-        uses: actions/github-script@v6
-        with:
-          script: |
-            core.setOutput('actions', 'false');
-            core.setOutput('reviews', 'false');
-            core.setOutput('grade', 'false');
-            core.setOutput('branch', 'false');
-
-            const issues = await github.rest.issues.listLabelsOnIssue({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              issue_number: context.issue.number
-            });
-
-            console.log(issues);
 
   check_actions:
     name: "Actions"

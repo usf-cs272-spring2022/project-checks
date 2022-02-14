@@ -235,7 +235,7 @@ jobs:
               let passing = false;
 
               for (const run in runs) {
-                console.log(JSON.stringify{run});
+                console.log(JSON.stringify(run));
               }
 
               if (!passing) {

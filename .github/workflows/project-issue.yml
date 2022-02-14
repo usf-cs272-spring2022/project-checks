@@ -216,7 +216,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            console.log(process.ENV.ERROR_MESSAGE);
+            console.log(process.env.ERROR_MESSAGE);
             core.setOutput('error_message', process.ENV.ERROR_MESSAGE);
 
   check_reviews:

@@ -121,8 +121,7 @@ jobs:
             console.log(context.payload.issue.body);
             console.log(context.payload.issue.labels);
 
-
-            const title = context.issue.title;
+            const title = context.payload.issue.title;
             console.log(`Issue Title: ${title}`);
 
             const pattern = /^Request.+\b(v[1-4]\.\d+\.\d+)$/;

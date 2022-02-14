@@ -76,7 +76,7 @@ jobs:
                   branch  = 'branch';
                   break;
 
-                case 'grade-test':
+                case 'grade-tests':
                   actions = 'tests';
                   grade   = 'grade';
                   break;

@@ -35,7 +35,7 @@ jobs:
       label:   ${{ steps.check_labels.outputs.label }}
       name:    ${{ steps.check_body.outputs.name }}
       user:    ${{ steps.check_body.outputs.user }}
-      release: ${{ steps.check_title.outputs.title }}
+      release: ${{ steps.check_title.outputs.release }}
 
     steps:
       - name: "Output context"
@@ -181,6 +181,7 @@ jobs:
             }
 
             const runs = listing.data.workflow_runs.filter(run => run.head_branch === release && run.status === 'completed');
+            console.log(runs);
 
             console.log(`Found ${listing.data.total_count} runs total.`);
             console.log(`Found ${runs.length} runs for release ${release}.`);
@@ -188,7 +189,7 @@ jobs:
             // try to find a successful run
             const success = runs.find(run => run.conclusion === 'success');
 
-            if (found != undefined) {
+            if (success != undefined) {
               console.log(`Found successful run: ${found}`);
               return;
             }
@@ -200,7 +201,7 @@ jobs:
             core.setOutput('error_message', 'Pending');
             core.setFailed(`Could not found a run that passed all tests and checks for release ${release}.`);
 
-            console.log(runs);
+
 
   check_reviews:
     name: "Reviews"

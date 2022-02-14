@@ -238,7 +238,22 @@ jobs:
               let passing = false;
 
               for (const run of runs) {
-                console.log(JSON.stringify(run));
+                const results = await github.rest.actions.listJobsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                  filter: 'latest',
+                  per_page: 100
+                });
+
+                if (results.status != 200) {
+                  const error_message = `Unable to fetch jobs for action run ${run.id}.`;
+                  core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+                  core.setFailed(error_message);
+                }
+                else {
+                  console.log(results);
+                }
               }
 
               if (!passing) {

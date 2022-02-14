@@ -125,7 +125,7 @@ jobs:
             const pattern = /^Request.+\b(v[1-4]\.\d+\.\d+)$/;
             const matched = title.match(pattern);
 
-            if (matched !== null && matched.length === 2) {
+            if (matched !== null && matched.length === 2 && false) {
               const release = matched[1];
               core.setOutput('release', release);
               console.log(`Release: ${release}`);

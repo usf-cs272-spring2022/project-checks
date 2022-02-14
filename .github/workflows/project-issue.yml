@@ -212,7 +212,7 @@ jobs:
 
   check_status:
     name: "Status"
-    if: ${{ failure() }}
+    if: ${{ always() }}
     needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:

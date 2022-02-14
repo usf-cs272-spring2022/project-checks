@@ -75,7 +75,6 @@ jobs:
 
             const long_message = `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
 
-            let labels = context.payload.issue.labels.map(e => e.name);
             labels.push('error');
 
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});

@@ -131,9 +131,16 @@ jobs:
               console.log(`Release: ${release}`);
             }
             else {
-              const message = `Unable to parse release from issue #${ context.payload.issue.number } title.`
+              const message = `Unable to parse release from issue #${ context.payload.issue.number } title. Make sure to replace \`v0.0.0\` in the issue title with a properly-formated release number.`
 
-              core.setFailed(message);
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: `:noentry: ${message} ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`
+              });
+              
+              core.setFailed(`${message} ${ process.env.FIX_ERRORS }`);
             }
 
   check_actions:

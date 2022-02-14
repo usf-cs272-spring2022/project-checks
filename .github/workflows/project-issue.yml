@@ -59,7 +59,7 @@ jobs:
             console.log(`Labels: ${labels}`);
 
             if (labels.length == 1) {
-              const label = labels.data[0].name;
+              const label = labels.data[0];
 
               switch (label) {
                 case 'review-request':

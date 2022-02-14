@@ -196,7 +196,7 @@ jobs:
           script: |
             console.log(`Release: ${release}`);
 
-            const runs = ${{ steps.get_runs.outputs.result }};
+            const runs = ${{ steps.find_complete.outputs.result }};
             const filtered = runs.filter(run => run.head_branch === release);
             console.log(`Found ${filtered.length} runs for release ${release}`);
 

@@ -118,6 +118,11 @@ jobs:
             const title = context.issue.title;
             console.log(context);
 
+            console.log(context.payload.issue.title);
+            console.log(context.payload.issue.number);
+            console.log(context.payload.issue.body);
+            console.log(context.payload.issue.labels);
+
 
 
   check_actions:

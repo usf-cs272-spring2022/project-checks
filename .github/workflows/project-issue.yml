@@ -180,7 +180,7 @@ jobs:
               return;
             }
 
-            const completed = listing.data.workflow_runs.filter(run => run.status === 'completed').sort(run => run.head_branch);
+            const completed = listing.data.workflow_runs.filter(run => run.status === 'completed');
             console.log(`Found ${listing.data.total_count} workflow runs total.`);
             console.log(`Found ${completed.length} completed runs: ${completed.map(run => run.head_branch)}`);
 

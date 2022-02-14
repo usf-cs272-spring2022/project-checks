@@ -112,11 +112,11 @@ jobs:
 
       - name: "Check issue title"
         id: check_title
-        run: |
-          echo "Hello world"
-          echo "::set-output name=release::Pending"
-
-          echo "${{ github.event.issue.title }}"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = context.issue.title;
+            console.log(title);
 
   check_actions:
     name: "Actions"

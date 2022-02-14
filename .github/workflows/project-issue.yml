@@ -116,6 +116,8 @@ jobs:
           echo "Hello world"
           echo "::set-output name=release::Pending"
 
+          echo "${{ github.event.issue.title }}"
+
   check_actions:
     name: "Actions"
     runs-on: ubuntu-latest
@@ -124,6 +126,7 @@ jobs:
     steps:
       - name: "Hello world"
         run: echo "Hello world"
+
 
   check_reviews:
     name: "Reviews"
@@ -145,7 +148,7 @@ jobs:
 
   make_branch:
     name: "Branch"
-    if: ${{ needs.check_issue.outputs.branch == 'branch' }}
+    if: ${{ !failure() && needs.check_issue.outputs.branch == 'branch' }}
     needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
     steps:
@@ -165,7 +168,7 @@ jobs:
 
             let message = `:octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.`;
 
-            let details = {
+            let success = {
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.issue.number
@@ -188,6 +191,18 @@ jobs:
               details.labels = labels;
               details.labels.push('error');
             }
+
+            // check for failure cases
+            switch('${{ needs.check_branch.result }}') {
+              case 'success':
+
+                break;
+
+              case 'failure':
+
+            }
+
+
 
             github.rest.issues.createComment({
               owner: context.repo.owner,

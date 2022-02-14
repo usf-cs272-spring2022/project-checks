@@ -66,14 +66,8 @@ jobs:
             }
 
             // only errors will get this far
-            const text_message = `Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`;
-            const long_message = `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
-            core.setOutput('text_message', text_message);
-            core.setOutput('long_message', long_message);
-            labels.push('error');
-            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
-            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
-            core.setFailed(text_message);
+            core.setOutput('error_message', `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+            core.setFailed(`Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`);
 
       - name: "Check issue body"
         id: check_body
@@ -82,47 +76,31 @@ jobs:
         with:
           script: |
             const body = context.payload.issue.body;
+            let error_message = undefined;
 
-            const pattern = /```json([^`]+)```/;
-            const matched = body.match(pattern);
+            try {
+              const pattern = /```json([^`]+)```/;
+              const matched = body.match(pattern);
 
-            let text_message = undefined;
+              const parsed = JSON.parse(matched[1]);
+              console.log(`Parsed: ${JSON.stringify(parsed)}`);
 
-            if (matched !== null && matched.length === 2) {
-              try {
-                const parsed = JSON.parse(matched[1]);
-                console.log(`Parsed: ${JSON.stringify(parsed)}`);
-
-                if (parsed.hasOwnProperty('name') && parsed.hasOwnProperty('username')) {
-                  if (parsed.name == "FULL_NAME" || parsed.username == "USF_USERNAME" ) {
-                    text_message = `Please update the "name" and "username" properties in the issue #${ context.payload.issue.number } body.`;
-                  }
-                  else {
-                    core.setOutput('name', parsed.name);
-                    core.setOutput('user', parsed.username);
-                    return;
-                  }
-                }
-
-                text_message = `Required "name" and "username" properties missing from issue #${ context.payload.issue.number } body.`;
+              if (parsed.name == "FULL_NAME" || parsed.username == "USF_USERNAME" ) {
+                error_message = `Please update the "name" and "username" properties in the issue #${ context.payload.issue.number } body.`;
               }
-              catch (error) {
-                text_message = `Unable to parse issue #${ context.payload.issue.number } body as JSON. Error: ${error.message}`;
+              else {
+                core.setOutput('name', parsed.name);
+                core.setOutput('user', parsed.username);
+                return;
               }
             }
-            else {
-              text_message = `Unable to detect JSON section from issue #${ context.payload.issue.number } body.`;
+            catch (error) {
+              error_message = `Unable to parse issue #${ context.payload.issue.number } body as JSON. Error: ${error.message}`;
             }
 
             // only errors will get this far
-            const long_message = `:no_entry: ${text_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
-            core.setOutput('text_message', text_message);
-            core.setOutput('long_message', long_message);
-            const labels = context.payload.issue.labels.map(e => e.name);
-            labels.push('error');
-            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
-            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
-            core.setFailed(text_message);
+            core.setOutput('error_message', `:no_entry: ${error_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+            core.setFailed(error_message);
 
       - name: "Check issue title"
         id: check_title
@@ -142,15 +120,8 @@ jobs:
               console.log(`Release: ${release}`);
             }
             else {
-              const text_message = `Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`;
-              const long_message = `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
-              core.setOutput('text_message', text_message);
-              core.setOutput('long_message', long_message);
-              const labels = context.payload.issue.labels.map(e => e.name);
-              labels.push('error');
-              github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
-              github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
-              core.setFailed(text_message);
+              core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`);
             }
 
       - name: "Check failures"
@@ -162,12 +133,17 @@ jobs:
             const steps = ${{ toJSON(steps) }};
 
             for (const step in steps) {
-              console.log(step);
-
-              if (steps[step].outcome == "failure") {
-                console.log(steps[step].outputs);
+              if (steps[step].outcome == "failure" && steps[step].outputs.hasOwnProperty('error_message')) {
+                // output the error as an issue comment
+                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: steps[step].outputs.error_message});
               }
             }
+
+            // close the issue, assign it to the user, and apply the 'error' label
+            const labels = context.payload.issue.labels.map(e => e.name);
+            labels.push('error');
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
 
   check_actions:
     name: "Actions"
@@ -228,11 +204,11 @@ jobs:
 
   check_status:
     name: "Status"
-    if: ${{ always() }}
-    needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
+    if: ${{ failure() }}
+    needs: [check_actions, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:
-      - name: "Check issue status"
+      - name: "Check status"
         uses: actions/github-script@v6
         with:
           script: |

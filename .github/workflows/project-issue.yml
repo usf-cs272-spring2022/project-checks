@@ -323,8 +323,6 @@ jobs:
                 project: '${{ needs.check_issue.outputs.project }}'
               };
 
-              console.log(config);
-
               // set submitted date
               switch (config.label) {
                 // for tests and final release, based on release
@@ -344,8 +342,6 @@ jobs:
                 default:
                   core.setFailed(`Unexpected label: ${config.label}`);
               }
-
-              console.log(config);
 
               // set deadline date
               switch (config.label) {
@@ -372,6 +368,15 @@ jobs:
 
               console.log(config);
               return config;
+
+      - name: "Setup node"
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: "Install luxon"
+        run: npm install luxon
 
       - name: "Calculate grade"
         id: calc_grade

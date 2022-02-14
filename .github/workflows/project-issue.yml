@@ -23,7 +23,7 @@ env:
   LATE_MAX_POINTS:   "26" # maximum number of points to deduct
 
   # default messages
-  RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.";
+  RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
 
 jobs:
   check_issue:

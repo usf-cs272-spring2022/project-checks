@@ -24,7 +24,7 @@ env:
 
   # default messages
   RUN_DETAIL: "@${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
-  FIX_ERRORS: "After fixing the errors, please remove the `error` label and re-open this issue."
+  FIX_ERRORS: "After addressing the errors, please remove the `error` label and re-open this issue."
 
 jobs:
   check_issue:
@@ -153,55 +153,69 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check_issue]
     if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'review-request' }}
+    outputs:
+      error_message: ${{ steps.check_status.outputs.error_message }}
     steps:
-      - name: "Check actions"
+      - name: "Find completed action runs"
         uses: actions/github-script@v6
-        env:
-          RELEASE: ${{ needs.check_issue.outputs.release }}
-          LABEL: ${{ needs.check_issue.outputs.label }}
+        id: get_runs
         with:
           script: |
-            const release = process.env.RELEASE;
-            const label = process.env.LABEL;
-
-            console.log(`Label: ${label}, Release: ${release}`);
-
-            const listing = await github.rest.actions.listWorkflowRuns({
+            const runs = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'project-release.yml',
               per_page: 100
             });
 
-            if (listing.status != 200) {
-              const error_message = `Unable to fetch runs for "Check project release" action (status ${listing.status}). Check GitHub status and try re-running this action.`;
-              core.setOutput('error_message', error_message);
+            if (runs.status != 200) {
+              const error_message = `Unable to fetch runs for "Check project release" action (status ${runs.status}).`;
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
               core.setFailed(error_message);
-              return;
+            }
+            else {
+              console.log(`Found ${runs.data.total_count} workflow runs total.`);
+              const filtered = runs.data.workflow_runs.filter(run => run.status === 'completed');
+
+              if (filtered.length < 1) {
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs.\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Unable to find any completed workflow runs.`);
+              }
+              else {
+                console.log(`Found ${filtered.length} completed runs: ${filtered.map(run => run.head_branch)}`);
+                return completed;
+              }
             }
 
-            const completed = listing.data.workflow_runs.filter(run => run.status === 'completed');
-            console.log(`Found ${listing.data.total_count} workflow runs total.`);
-            console.log(`Found ${completed.length} completed runs: ${completed.map(run => run.head_branch)}`);
+      - name: "Find release runs"
+        uses: actions/github-script@v6
+        id: get_runs
+        env:
+          RELEASE: ${{ needs.check_issue.outputs.release }}
+        with:
+          script: |
+            console.log(`Release: ${release}`);
 
-            const filtered = completed.filter(run => run.head_branch === release);
-            console.log(`Found ${filtered.length} runs for release ${release}: ${filtered.map(run => run.conclusion)}`);
+            const runs = ${{ steps.get_runs.outputs.result }};
+            const filtered = runs.filter(run => run.head_branch === release);
+            console.log(`Found ${filtered.length} runs for release ${release}`);
 
-            // try to find a successful run
-            const success = filtered.find(run => run.conclusion === 'success');
-
-            if (success != undefined) {
-              console.log(`Found successful run: ${JSON.stringify(success)}`);
-              return;
+            if (filtered.length < 1) {
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release is correct in the issue title, or create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to find any completed workflow runs.`);
             }
-            else if ('${{ needs.check_issue.outputs.label }}' == 'grade-tests') {
-
+            else {
+              console.log(`Found ${filtered.length} completed runs: ${filtered.map(run => run.head_branch)}`);
+              return completed;
             }
 
-            // could not find a successful run
-            core.setOutput('error_message', 'Pending');
-            core.setFailed(`Could not found a run that passed all tests and checks for release ${release}.`);
 
+      - name: "Check status"
+        id: check_status
+        if: ${{ failure() }}
+        steps: |
+          console.log(process.ENV.ERROR_MESSAGE);
+          core.setOutput('error_message', process.ENV.ERROR_MESSAGE);
 
 
   check_reviews:

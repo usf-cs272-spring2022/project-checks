@@ -22,6 +22,10 @@ env:
   LATE_MAX_GAP:      "10" # maximum gap in between code reviews
   LATE_MAX_POINTS:   "26" # maximum number of points to deduct
 
+  # default messages
+  RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.";
+  FIX_ERRORS: "After fixing the errors, please remove the `error` label and re-open this issue."
+
 jobs:
   check_issue:
     name: "Issue"
@@ -115,12 +119,6 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            console.log(context);
-            console.log(context.payload.issue.title);
-            console.log(context.payload.issue.number);
-            console.log(context.payload.issue.body);
-            console.log(context.payload.issue.labels);
-
             const title = context.payload.issue.title;
             console.log(`Issue Title: ${title}`);
 
@@ -129,10 +127,27 @@ jobs:
 
             if (matched !== null && matched.length === 2) {
               const release = matched[1];
+              core.setOutput('release', release);
               console.log(`Release: ${release}`);
             }
+            else {
+              const message = `Unable to parse release from issue title. Please make sure to replace \`v0.0.0\` in the issue title with a properly-formated release number.`
 
+              const body = `
+:noentry: ${message} ${ process.env.FIX_ERRORS }
 
+:information_source: ${ process.env.RUN_DETAIL }
+              `;
+
+              github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.issue.number,
+                body: body
+              });
+
+              core.setFailed(message);
+            }
 
   check_actions:
     name: "Actions"

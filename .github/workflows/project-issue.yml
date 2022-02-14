@@ -1,3 +1,6 @@
+# using reusable workflow so do not need to maintain a separate repository and
+# worry about keeping all of the node packages updated
+
 name: "Check project issue"
 
 on:
@@ -234,12 +237,12 @@ jobs:
             else if ('${{ needs.check_issue.outputs.label }}' == 'grade-tests') {
               let passing = false;
 
-              for (const run in runs) {
+              for (const run of runs) {
                 console.log(JSON.stringify(run));
               }
 
               if (!passing) {
-                core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests for release \`${release}\`.\n\n\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }');
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests for release \`${release}\`.\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
                 core.setFailed(`No runs found that passed all tests for release ${release}.`);
               }
             }

@@ -39,8 +39,7 @@ jobs:
       name: ${{ steps.check_body.outputs.name }}
       user: ${{ steps.check_body.outputs.user }}
       release: ${{ steps.check_title.outputs.release }}
-      submitted_id: ${{ steps.check_actions.outputs.submitted_id }}
-      submitted_date: ${{ steps.check_actions.outputs.submitted_date }}
+      project: ${{ steps.check_title.outputs.project }}
 
     steps:
       - name: "Output context"
@@ -119,13 +118,15 @@ jobs:
             const title = context.payload.issue.title;
             console.log(`Issue Title: ${title}`);
 
-            const pattern = /^Request.+\b(v[1-4]\.\d+\.\d+)$/;
+            const pattern = /^Request.+\b(v([1-4])\.\d+\.\d+)$/;
             const matched = title.match(pattern);
 
-            if (matched !== null && matched.length === 2) {
+            if (matched !== null && matched.length === 3) {
               const release = matched[1];
+              const project = matched[2];
               core.setOutput('release', release);
-              console.log(`Release: ${release}`);
+              core.setOutput('project', project);
+              console.log(`Release: ${release}, Project: ${project}`);
             }
             else {
               core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
@@ -306,14 +307,78 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ !failure() && (needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'grade-review') }}
     needs: [check_issue, check_actions, check_reviews]
+
+    outputs:
+      error_message: ${{ steps.check_status.outputs.error_message }}
+
     steps:
-      - name: "Hello world"
-        run: |
-          echo "Hello world"
-          echo "${{ needs.check_issue.outputs.release }}"
-          echo "${{ needs.check_issue.outputs.label }}"
-          echo "${{ needs.check_actions.outputs.submitted_id }}"
-          echo "${{ needs.check_actions.outputs.submitted_date }}"
+      - name: "Lookup deadline"
+        id: find_deadline
+        uses: actions/github-script@v6
+        with:
+          script: |
+              const config = {
+                label: '${{ needs.check_issue.outputs.label }}',
+                release: '${{ needs.check_issue.outputs.release }}'
+                project: '${{ needs.check_issue.outputs.project }}'
+              };
+
+              // set submitted date
+              switch (config.label) {
+                // for tests and final release, based on release
+                case 'grade-release':
+                case 'grade-tests':
+                  config.submitted_id = '${{ needs.check_actions.outputs.submitted_id }}';
+                  config.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
+                  config.submitted_type = 'action run';
+                  break;
+
+                // for code review, based on pull request approval
+                case 'grade-review':
+                  config.submitted_type = 'pull request';
+                  core.warning('Not yet implemented.');
+                  break;
+
+                default:
+                  core.error('Unexpected label: ${config.label}');
+              }
+
+              // set deadline date
+              switch (config.label) {
+                // based on test deadline
+                case 'grade-tests':
+                  config.deadline = process.env[`PROJECT_${config.project}_TESTS`];
+                  config.late_points = process.env.LATE_TESTS_POINTS;
+                  config.late_days = process.env.LATE_TESTS_DAYS;
+                  break;
+
+                // based on review deadline -or- last code review
+                case 'grade-review':
+                  core.warning('Not yet implemented.');
+                  break;
+
+                // based on last code review
+                case 'grade-release':
+                  core.warning('Not yet implemented.');
+                  break;
+
+                default:
+                  core.error('Unexpected label: ${config.label}');
+              }
+
+              console.log(config);
+              return config;
+
+      - name: "Calculate grade"
+        id: calc_grade
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { DateTime } = require('luxon');
+            const zone = 'America/Los_Angeles';
+
+            const config = ${{ steps.find_deadline.outputs.result }};
+            console.log(config);
 
   make_branch:
     name: "Branch"

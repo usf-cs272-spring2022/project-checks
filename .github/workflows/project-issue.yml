@@ -24,7 +24,6 @@ env:
 
   # default messages
   RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.";
-  FIX_ERRORS: "After fixing the errors, please remove the `error` label and re-open this issue."
 
 jobs:
   check_issue:

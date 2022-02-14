@@ -214,6 +214,7 @@ jobs:
     name: "Status"
     if: ${{ failure() }}
     needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
+    runs-on: ubuntu-latest
     steps:
       - name: "Check issue status"
         uses: actions/github-script@v6

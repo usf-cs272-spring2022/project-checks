@@ -23,7 +23,7 @@ env:
   LATE_MAX_POINTS:   "26" # maximum number of points to deduct
 
   # default messages
-  RUN_DETAIL: "See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+  RUN_DETAIL: "@{{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
   FIX_ERRORS: "After fixing the errors, please remove the `error` label and re-open this issue."
 
 jobs:
@@ -53,7 +53,7 @@ jobs:
             console.log(`Labels: ${labels}`);
 
             if (labels.length == 1) {
-              const label = labels.data[0];
+              const label = labels[0];
 
               switch (label) {
                 case 'review-request':

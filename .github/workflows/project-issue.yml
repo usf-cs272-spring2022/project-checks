@@ -94,7 +94,7 @@ jobs:
             if (matched !== null && matched.length === 2) {
               try {
                 const parsed = JSON.parse(matched[1]);
-                console.log(`Parsed: ${parsed}`);
+                console.log(`Parsed: ${JSON.stringify(parsed)}`);
 
                 if (parsed.hasOwnProperty('name') && parsed.hasOwnProperty('username')) {
                   if (parsed.name == "FULL_NAME" || parsed.username == "USF_USERNAME" ) {
@@ -166,8 +166,25 @@ jobs:
     needs: [check_issue]
     if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'review-request' }}
     steps:
-      - name: "Hello world"
-        run: echo "Hello world"
+      - name: "Check release"
+        uses: actions/github-script@v6
+        env:
+          RELEASE: ${{ needs/check_issue.outputs.release }}
+          LABEL: ${{ needs/check_issue.outputs.label }}
+        with:
+          script: |
+            const release = process.env.RELEASE;
+            const label = process.env.LABEL;
+
+            console.log(`Label: ${label}, Release: ${release}`);
+
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'project-release.yml'
+            });
+
+            console.log(runs);
 
   check_reviews:
     name: "Reviews"

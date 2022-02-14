@@ -50,8 +50,8 @@ jobs:
           script: |
             let actions = 'false';
             let reviews = 'false';
-            let grade = 'false';
-            let branch = 'false';
+            let grade   = 'false';
+            let branch  = 'false';
 
             const labels = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
@@ -62,27 +62,36 @@ jobs:
             if (labels.status != 200) {
               core.setOutput('valid', 'false');
               core.setFailed(`Unable to check issue #${context.issue.number} labels. Status: ${labels.status}`);
+              return;
             }
 
             if (labels.data.length != 1) {
               core.setOutput('valid', 'false');
               core.setFailed(`This workflow is not configured to respond to this issue. Labels: ${labels.data.map(e => e.name).join(", ")}`);
+              return;
             }
             else if (labels.data[0].name == 'review-request') {
-
+              actions = 'checks';
+              reviews = 'approved';
+              branch  = 'true';
             }
             else if (labels.data[0].name == 'grade-test') {
-
+              actions = 'tests';
+              grade   = 'true';
             }
             else if (labels.data[0].name == 'grade-review') {
-
+              reviews = 'approved';
+              grade   = 'true';
             }
             else if (labels.data[0].name == 'grade-release') {
-
+              actions = 'checks';
+              reviews = 'passed';
+              grade   = 'true';
             }
             else {
               core.setOutput('valid', 'false');
               core.setFailed(`This workflow is not configured to respond to this issue. Label: ${labels.data[0].name}`);
+              return;
             }
 
             core.setOutput('valid', 'true');
@@ -90,7 +99,7 @@ jobs:
             core.setOutput('reviews', reviews);
             core.setOutput('grade', grade);
             core.setOutput('branch', branch);
-            core.log('Issue type successfully parsed!');
+            console.log('Issue type successfully parsed!');
 
       - name: "Check issue body"
         id: check_body

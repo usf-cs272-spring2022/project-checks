@@ -201,7 +201,7 @@ jobs:
             const runs = ${{ steps.find_complete.outputs.result }};
             const filtered = runs.filter(run => run.head_branch === release);
 
-            if (filtered.length <= 1) {
+            if (filtered.length < 1) {
               core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release in the issue title is associated with a completed (*not* in progress, waiting, or cancelled) action run. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
               core.setFailed(`Unable to find any completed workflow runs for release ${release}.`);
             }

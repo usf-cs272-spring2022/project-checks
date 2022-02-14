@@ -67,15 +67,10 @@ jobs:
 
             // only errors will get this far
             const text_message = `Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`;
-
             const long_message = `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
-
             labels.push('error');
-
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
-
             github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
-
             core.setFailed(text_message);
 
       - name: "Check issue body"
@@ -117,16 +112,12 @@ jobs:
               text_message = `Unable to detect JSON section from issue #${ context.payload.issue.number } body.`;
             }
 
-            const long_message = `:no_entry: ${text_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
-
             // only errors will get this far
+            const long_message = `:no_entry: ${text_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
             const labels = context.payload.issue.labels.map(e => e.name);
             labels.push('error');
-
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
-
             github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
-
             core.setFailed(text_message);
 
       - name: "Check issue title"
@@ -149,14 +140,10 @@ jobs:
             else {
               const text_message = `Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`;
               const long_message = `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
-
               const labels = context.payload.issue.labels.map(e => e.name);
               labels.push('error');
-
               github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
-
               github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
-
               core.setFailed(text_message);
             }
 
@@ -183,6 +170,10 @@ jobs:
               repo: context.repo.repo,
               workflow_id: 'project-release.yml'
             });
+
+            if (runs.status != 200) {
+
+            }
 
             console.log(runs);
 
@@ -212,3 +203,19 @@ jobs:
     steps:
       - name: "Hello world"
         run: echo "Hello world"
+
+  check_status:
+    name: "Status"
+    if: ${{ failure() }}
+    needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
+    steps:
+      - name: "Check issue status"
+        uses: actions/github-script@v6
+        if: ${{ needs.check_issue.result == 'failure' }}
+        env:
+          TEXT_MESSAGE: ${{ needs.check_issue.outputs.text_message }}
+          LONG_MESSAGE: ${{ needs.check_issue.outputs.long_message }}
+        with:
+          script: |
+            const needs = ${{ toJSON(needs) }}
+            console.log(needs);

@@ -194,6 +194,7 @@ jobs:
           RELEASE: ${{ needs.check_issue.outputs.release }}
         with:
           script: |
+            const release = process.env.RELEASE;
             console.log(`Release: ${release}`);
 
             const runs = ${{ steps.find_complete.outputs.result }};

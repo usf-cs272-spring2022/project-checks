@@ -35,10 +35,12 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      label:   ${{ steps.check_labels.outputs.label }}
-      name:    ${{ steps.check_body.outputs.name }}
-      user:    ${{ steps.check_body.outputs.user }}
+      label: ${{ steps.check_labels.outputs.label }}
+      name: ${{ steps.check_body.outputs.name }}
+      user: ${{ steps.check_body.outputs.user }}
       release: ${{ steps.check_title.outputs.release }}
+      submitted_id: ${{ steps.check_actions.outputs.submitted_id }}
+      submitted_date: ${{ steps.check_actions.outputs.submitted_date }}
 
     steps:
       - name: "Output context"
@@ -157,8 +159,12 @@ jobs:
     runs-on: ubuntu-latest
     needs: [check_issue]
     if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'review-request' }}
+
     outputs:
       error_message: ${{ steps.check_status.outputs.error_message }}
+      submitted_id: ${{ steps.find_passing.outputs.submitted_id }}
+      submitted_date: ${{ steps.find_passing.outputs.submitted_date }}
+
     steps:
       - name: "Find completed action runs"
         uses: actions/github-script@v6
@@ -231,12 +237,14 @@ jobs:
             const success = runs.find(run => run.conclusion === 'success');
 
             if (success != undefined) {
-              console.log(`Found successful run: ${JSON.stringify(success)}`);
+              console.log(`Found successful run:`);
+              console.log(success);
+              core.setOutput(submitted_id, success.id);
+              core.setOutput(submitted_date, success.head_commit.timestamp);
+              console.log(`ID: ${success.id}, Submitted: ${success.head_commit.timestamp}`);
               return;
             }
             else if ('${{ needs.check_issue.outputs.label }}' == 'grade-tests') {
-              let passing = false;
-
               for (const run of runs) {
                 const results = await github.rest.actions.listJobsForWorkflowRun({
                   owner: context.repo.owner,
@@ -252,15 +260,22 @@ jobs:
                   core.setFailed(error_message);
                 }
                 else {
-                  console.log(results.data.jobs);
-                  // TODO HERE
+                  const test_job = results.data.jobs.find(job => job.name == 'Check / JUnit Tests');
+                  console.log(`Check / JUnit Tests:`);
+                  console.log(test_job);
+
+                  if (test_job.conclusion == 'success') {
+                    core.setOutput(submitted_id, run.id);
+                    core.setOutput(submitted_date, run.head_commit.timestamp);
+                    console.log(`ID: ${run.id}, Submitted: ${run.head_commit.timestamp}`);
+                    return;
+                  }
                 }
               }
 
-              if (!passing) {
-                core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests for release \`${release}\`.\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
-                core.setFailed(`No runs found that passed all tests for release ${release}.`);
-              }
+              // only get here if no successful test run found
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests for release \`${release}\`.\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`No runs found that passed all tests for release ${release}.`);
             }
             else {
               core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }');

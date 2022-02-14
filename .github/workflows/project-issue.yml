@@ -394,6 +394,7 @@ jobs:
             config.deadline = DateTime.fromISO(config.deadline, {zone: zone});
 
             console.log(`Submitted: ${config.submitted_date.toString()}, Deadline: ${config.deadline.toString()}`);
+            console.log('hello');
 
   make_branch:
     name: "Branch"

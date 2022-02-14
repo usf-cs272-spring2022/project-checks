@@ -319,7 +319,7 @@ jobs:
           script: |
               const config = {
                 label: '${{ needs.check_issue.outputs.label }}',
-                release: '${{ needs.check_issue.outputs.release }}'
+                release: '${{ needs.check_issue.outputs.release }}',
                 project: '${{ needs.check_issue.outputs.project }}'
               };
 

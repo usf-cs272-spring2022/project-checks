@@ -209,14 +209,14 @@ jobs:
               return completed;
             }
 
-
       - name: "Check status"
         id: check_status
         if: ${{ failure() }}
-        steps: |
-          console.log(process.ENV.ERROR_MESSAGE);
-          core.setOutput('error_message', process.ENV.ERROR_MESSAGE);
-
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log(process.ENV.ERROR_MESSAGE);
+            core.setOutput('error_message', process.ENV.ERROR_MESSAGE);
 
   check_reviews:
     name: "Reviews"

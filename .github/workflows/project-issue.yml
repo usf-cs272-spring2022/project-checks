@@ -323,6 +323,8 @@ jobs:
                 project: '${{ needs.check_issue.outputs.project }}'
               };
 
+              console.log(config);
+
               // set submitted date
               switch (config.label) {
                 // for tests and final release, based on release
@@ -340,8 +342,10 @@ jobs:
                   break;
 
                 default:
-                  core.error('Unexpected label: ${config.label}');
+                  core.setFailed(`Unexpected label: ${config.label}`);
               }
+
+              console.log(config);
 
               // set deadline date
               switch (config.label) {
@@ -363,7 +367,7 @@ jobs:
                   break;
 
                 default:
-                  core.error('Unexpected label: ${config.label}');
+                  core.setFailed(`Unexpected label: ${config.label}`);
               }
 
               console.log(config);

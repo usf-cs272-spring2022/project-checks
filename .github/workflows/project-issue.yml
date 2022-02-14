@@ -212,7 +212,7 @@ jobs:
 
       - name: "Find passing runs"
         uses: actions/github-script@v6
-        id: find_release
+        id: find_passing
         env:
           RELEASE: ${{ needs.check_issue.outputs.release }}
           LABEL: ${{ needs.check_issue.outputs.label }}

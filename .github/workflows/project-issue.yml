@@ -116,7 +116,9 @@ jobs:
         with:
           script: |
             const title = context.issue.title;
-            console.log(title);
+            console.log(context);
+
+
 
   check_actions:
     name: "Actions"

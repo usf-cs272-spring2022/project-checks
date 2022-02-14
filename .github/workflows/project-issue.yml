@@ -44,6 +44,11 @@ jobs:
       release: ${{ steps.check_title.outputs.title }}
 
     steps:
+      - name: "Output context"
+        uses: actions/github-script@v6
+        with:
+          script: console.log(context);
+
       - name: "Check issue labels"
         id: check_labels
         uses: actions/github-script@v6
@@ -131,25 +136,17 @@ jobs:
               console.log(`Release: ${release}`);
             }
             else {
-              const message = `Unable to parse release from issue #${ context.payload.issue.number } title: ${title}. Make sure to replace \`v0.0.0\` in the issue title with a properly-formated release number.`
+              const text_message = `Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`;
+              const long_message = `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`;
 
-              const request = {
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: context.payload.issue.number
-              };
+              let labels = context.payload.issue.labels.map(e => e.name);
+              labels.push('error');
 
-              github.rest.issues.createComment({
-                ...request,
-                body: `:no_entry: ${message} ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`
-              });
+              github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
 
-              github.rest.issues.addLabels({
-                ...request,
-                label: 'error'
-              });
+              github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', labels: labels});
 
-              core.setFailed(`${message} ${ process.env.FIX_ERRORS }`);
+              core.setFailed(text_message);
             }
 
   check_actions:

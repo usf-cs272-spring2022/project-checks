@@ -131,7 +131,7 @@ jobs:
               console.log(`Release: ${release}`);
             }
             else {
-              const message = `Unable to parse release from issue title. Please make sure to replace \`v0.0.0\` in the issue title with a properly-formated release number.`
+              const message = `Unable to parse release from issue #${ context.payload.issue.number } title.`
 
               core.setFailed(message);
             }

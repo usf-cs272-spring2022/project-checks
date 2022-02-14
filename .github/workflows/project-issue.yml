@@ -166,15 +166,20 @@ jobs:
 
             console.log(`Label: ${label}, Release: ${release}`);
 
-            const runs = await github.rest.actions.listWorkflowRuns({
+            const listing = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
               repo: context.repo.repo,
               workflow_id: 'project-release.yml'
             });
 
-            if (runs.status != 200) {
-
+            if (listing.status != 200) {
+              const error_message = `Unable to fetch runs for "Check project release" action (status ${listing.status}). Check GitHub status and try re-running this action.`;
+              core.setOutput('error_message', error_message);
+              core.setFailed(error_message);
+              return;
             }
+
+            const runs = listing.data.workflow_runs;
 
             console.log(runs);
 

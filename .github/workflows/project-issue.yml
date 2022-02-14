@@ -180,7 +180,7 @@ jobs:
               return;
             }
 
-            const completed = listing.data.workflow_runs.filter(run => run.status === 'completed');
+            const completed = listing.data.workflow_runs.filter(run => run.status === 'completed').sort(run => run.head_branch);
             console.log(`Found ${listing.data.total_count} workflow runs total.`);
             console.log(`Found ${completed.length} completed runs: ${completed.map(run => run.head_branch)}`);
 
@@ -191,7 +191,7 @@ jobs:
             const success = filtered.find(run => run.conclusion === 'success');
 
             if (success != undefined) {
-              console.log(`Found successful run: ${found}`);
+              console.log(`Found successful run: ${success}`);
               return;
             }
             else if ('${{ needs.check_issue.outputs.label }}' == 'grade-tests') {

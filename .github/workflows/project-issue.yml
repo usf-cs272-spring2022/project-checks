@@ -154,7 +154,7 @@ jobs:
     needs: [check_issue]
     if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'review-request' }}
     steps:
-      - name: "Check release"
+      - name: "Check actions"
         uses: actions/github-script@v6
         env:
           RELEASE: ${{ needs.check_issue.outputs.release }}
@@ -169,7 +169,8 @@ jobs:
             const listing = await github.rest.actions.listWorkflowRuns({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              workflow_id: 'project-release.yml'
+              workflow_id: 'project-release.yml',
+              per_page: 100
             });
 
             if (listing.status != 200) {
@@ -179,7 +180,12 @@ jobs:
               return;
             }
 
-            const runs = listing.data.workflow_runs;
+            const runs = listing.data.workflow_runs.filter(run => run.head_branch === release && run.status === 'completed');
+
+            console.log(`Found ${listing.data.total_count} runs total.);
+            console.log(`Found ${runs.length} runs for release ${release}.`);
+
+            
 
             console.log(runs);
 

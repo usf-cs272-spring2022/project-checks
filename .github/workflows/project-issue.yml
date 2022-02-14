@@ -30,6 +30,8 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
+      valid:   ${{ steps.check_labels.outputs.valid }}
+
       actions: ${{ steps.check_labels.outputs.actions }}
       reviews: ${{ steps.check_labels.outputs.reviews }}
       grade:   ${{ steps.check_labels.outputs.grade }}
@@ -58,10 +60,12 @@ jobs:
             });
 
             if (labels.status != 200) {
+              core.setOutput('valid', 'false');
               core.setFailed(`Unable to check issue #${context.issue.number} labels. Status: ${labels.status}`);
             }
 
             if (labels.data.length != 1) {
+              core.setOutput('valid', 'false');
               core.setFailed(`This workflow is not configured to respond to this issue. Labels: ${labels.data.map(e => e.name).join(", ")}`);
             }
             else if (labels.data[0].name == 'review-request') {
@@ -77,13 +81,16 @@ jobs:
 
             }
             else {
-              core.setFailed(`This workflow is not configured to respond to this issue label: ${labels.data[0].name}`);
+              core.setOutput('valid', 'false');
+              core.setFailed(`This workflow is not configured to respond to this issue. Label: ${labels.data[0].name}`);
             }
 
+            core.setOutput('valid', 'true');
             core.setOutput('actions', actions);
             core.setOutput('reviews', reviews);
             core.setOutput('grade', grade);
             core.setOutput('branch', branch);
+            core.log('Issue type successfully parsed!');
 
       - name: "Check issue body"
         id: check_body
@@ -137,7 +144,7 @@ jobs:
 
   check_status:
     name: "Status"
-    if: ${{ always() }}
+    if: ${{ always() && needs.check_issue.outputs.valid != 'false' }}
     needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:

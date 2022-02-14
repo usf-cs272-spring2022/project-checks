@@ -115,13 +115,23 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const title = context.issue.title;
             console.log(context);
-
             console.log(context.payload.issue.title);
             console.log(context.payload.issue.number);
             console.log(context.payload.issue.body);
             console.log(context.payload.issue.labels);
+
+
+            const title = context.issue.title;
+            console.log(`Issue Title: ${title}`);
+
+            const pattern = /^Request.+\b(v[1-4]\.\d+\.\d+)$/;
+            const matched = title.match(pattern);
+
+            if (matched !== null && matched.length === 2) {
+              const release = matched[1];
+              console.log(`Release: ${release}`);
+            }
 
 
 

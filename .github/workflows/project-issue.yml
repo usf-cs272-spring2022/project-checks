@@ -182,8 +182,8 @@ jobs:
                 core.setFailed(`Unable to find any completed workflow runs.`);
               }
               else {
-                console.log(`Found ${filtered.length} completed runs: ${filtered.map(run => run.head_branch)}`);
-                return completed;
+                console.log(`Found ${filtered.length} completed runs: ${filtered.map(run => run.head_branch).join(', ')}`);
+                return filtered;
               }
             }
 

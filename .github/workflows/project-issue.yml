@@ -137,7 +137,7 @@ jobs:
   make_grade:
     name: "Grade"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.grade == 'grade' }}
+    if: ${{ !failure() && needs.check_issue.outputs.grade == 'grade' }}
     needs: [check_issue, check_actions, check_reviews]
     steps:
       - name: "Hello world"

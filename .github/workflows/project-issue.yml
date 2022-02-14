@@ -55,10 +55,10 @@ jobs:
         with:
           script: |
             const labels = context.payload.issue.labels.map(e => e.name);
-            console.log(labels);
+            console.log(`Labels: ${labels}`);
 
-            if (labels.data.length == 1) {
-              label = labels.data[0].name;
+            if (labels.length == 1) {
+              const label = labels.data[0].name;
 
               switch (label) {
                 case 'review-request':

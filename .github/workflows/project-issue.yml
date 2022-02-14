@@ -180,14 +180,15 @@ jobs:
               return;
             }
 
-            const runs = listing.data.workflow_runs.filter(run => run.head_branch === release && run.status === 'completed');
-            console.log(runs);
+            const completed = listing.data.workflow_runs.filter(run => run.status === 'completed');
+            console.log(`Found ${listing.data.total_count} workflow runs total.`);
+            console.log(`Found ${completed.length} completed runs: ${completed.map(run => run.head_branch)}`);
 
-            console.log(`Found ${listing.data.total_count} runs total.`);
-            console.log(`Found ${runs.length} runs for release ${release}.`);
+            const filtered = completed.filter(run => run.head_branch === release);
+            console.log(`Found ${filtered.length} runs for release ${release}: ${filtered.map(run => run.conclusion)}`);
 
             // try to find a successful run
-            const success = runs.find(run => run.conclusion === 'success');
+            const success = filtered.find(run => run.conclusion === 'success');
 
             if (success != undefined) {
               console.log(`Found successful run: ${found}`);

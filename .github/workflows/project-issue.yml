@@ -103,9 +103,14 @@ jobs:
                 console.log(`Parsed: ${parsed}`);
 
                 if (parsed.hasOwnProperty('name') && parsed.hasOwnProperty('username')) {
-                  core.setOutput('name', parsed.name);
-                  core.setOutput('user', parsed.username);
-                  return;
+                  if (parsed.name == "FULL_NAME" || parsed.username == "USF_USERNAME" ) {
+                    text_message = `Please update the "name" and "username" properties in the issue #${ context.payload.issue.number } body.`;
+                  }
+                  else {
+                    core.setOutput('name', parsed.name);
+                    core.setOutput('user', parsed.username);
+                    return;
+                  }
                 }
 
                 text_message = `Required "name" and "username" properties missing from issue #${ context.payload.issue.number } body.`;

@@ -202,12 +202,50 @@ jobs:
             const filtered = runs.filter(run => run.head_branch === release);
 
             if (filtered.length <= 1) {
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release is correct in the issue title, or create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
-              core.setFailed(`Unable to find any completed workflow runs.`);
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release in the issue title is associated with a completed (*not* in progress, waiting, or cancelled) action run. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to find any completed workflow runs for release ${release}.`);
             }
             else {
               console.log(`Found ${filtered.length} runs for ${release}: ${filtered.map(run => run.head_branch).join(', ')}`);
               return filtered;
+            }
+
+      - name: "Find passing runs"
+        uses: actions/github-script@v6
+        id: find_release
+        env:
+          RELEASE: ${{ needs.check_issue.outputs.release }}
+          LABEL: ${{ needs.check_issue.outputs.label }}
+        with:
+          script: |
+            const release = process.env.RELEASE;
+            const label = process.env.LABEL;
+            console.log(`Label: ${label}, Release: ${release}`);
+
+            const runs = ${{ steps.find_release.outputs.result }};
+
+            // try to find a successful run
+            const success = runs.find(run => run.conclusion === 'success');
+
+            if (success != undefined) {
+              console.log(`Found successful run: ${JSON.stringify(success)}`);
+              return;
+            }
+            else if ('${{ needs.check_issue.outputs.label }}' == 'grade-tests') {
+              let passing = false;
+
+              for (const run in runs) {
+                console.log(JSON.stringify{run});
+              }
+
+              if (!passing) {
+                core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests for release \`${release}\`.\n\n\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }');
+                core.setFailed(`No runs found that passed all tests for release ${release}.`);
+              }
+            }
+            else {
+              core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }');
+              core.setFailed(`No runs found that passed all tests and checks for release ${release}.`);
             }
 
       - name: "Check status"

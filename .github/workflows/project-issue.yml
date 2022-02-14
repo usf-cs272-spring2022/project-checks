@@ -54,63 +54,35 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            let actions = 'false';
-            let reviews = 'false';
-            let branch  = 'false';
-            let grade   = 'false';
-            let label   = 'error';
+            const labels = context.payload.issue.labels.map(e => e.name);
+            console.log(labels);
 
-            const labels = await github.rest.issues.listLabelsOnIssue({
-              owner: context.repo.owner,
-              repo:  context.repo.repo,
-              issue_number: context.issue.number
-            });
-
-            if (labels.status != 200) {
-              core.setFailed(`Unable to fetch labels for issue #${context.issue.number}. Check for any outages and try to re-run this action.`);
-            }
-            else if (labels.data.length == 0) {
-              core.setFailed(`Issue #${context.issue.number} has no labels. Please use the provided issue templates to create issues.`);
-            }
-            else if (labels.data.length > 1) {
-              core.setFailed(`Issue #${context.issue.number} has too many labels. Please remove any "fixme" or "error" labels before re-running this workflow. Found: ${labels.data.map(e => e.name).join(", ")}`);
-            }
-            else { // have exactly 1 label
+            if (labels.data.length == 1) {
               label = labels.data[0].name;
 
               switch (label) {
                 case 'review-request':
-                  actions = 'checks';
-                  reviews = 'approved';
-                  branch  = 'branch';
-                  break;
-
                 case 'grade-tests':
-                  actions = 'tests';
-                  grade   = 'grade';
-                  break;
-
                 case 'grade-review':
-                  reviews = 'approved';
-                  grade   = 'grade';
-                  break;
-
                 case 'grade-release':
-                  actions = 'checks';
-                  reviews = 'passed';
-                  grade   = 'grade';
-                  break;
-
-                default:
-                  core.setFailed(`Issue ${context.issue.number} has an unexpected label: ${label}`);
+                  core.setOutput('label', label);
+                  return;
               }
             }
 
-            core.setOutput('actions', actions);
-            core.setOutput('reviews', reviews);
-            core.setOutput('branch', branch);
-            core.setOutput('grade', grade);
-            core.setOutput('label', label);
+            // only errors will get this far
+            const text_message = `Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.join(', ')}`;
+
+            const long_message = `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.join(', ')\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
+
+            let labels = context.payload.issue.labels.map(e => e.name);
+            labels.push('error');
+
+            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: context.actor, labels: labels});
+
+            core.setFailed(text_message);
 
       - name: "Check issue body"
         id: check_body
@@ -130,21 +102,21 @@ jobs:
             const pattern = /^Request.+\b(v[1-4]\.\d+\.\d+)$/;
             const matched = title.match(pattern);
 
-            if (matched !== null && matched.length === 2 && false) {
+            if (matched !== null && matched.length === 2) {
               const release = matched[1];
               core.setOutput('release', release);
               console.log(`Release: ${release}`);
             }
             else {
               const text_message = `Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`;
-              const long_message = `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`;
+              const long_message = `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
 
               let labels = context.payload.issue.labels.map(e => e.name);
               labels.push('error');
 
               github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: long_message});
 
-              github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', labels: labels});
+              github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: context.actor, labels: labels});
 
               core.setFailed(text_message);
             }

@@ -22,20 +22,17 @@ env:
   LATE_MAX_GAP:      "10" # maximum gap in between code reviews
   LATE_MAX_POINTS:   "26" # maximum number of points to deduct
 
-  ASSIGNEES: "['sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon']"
-
 jobs:
   check_issue:
     name: "Issue"
     runs-on: ubuntu-latest
 
     outputs:
-      valid:   ${{ steps.check_labels.outputs.valid }}
-
       actions: ${{ steps.check_labels.outputs.actions }}
       reviews: ${{ steps.check_labels.outputs.reviews }}
-      grade:   ${{ steps.check_labels.outputs.grade }}
       branch:  ${{ steps.check_labels.outputs.branch }}
+      grade:   ${{ steps.check_labels.outputs.grade }}
+      label:   ${{ steps.check_labels.outputs.label }}
 
       name: ${{ steps.check_body.outputs.name }}
       user: ${{ steps.check_body.outputs.user }}
@@ -50,8 +47,9 @@ jobs:
           script: |
             let actions = 'false';
             let reviews = 'false';
-            let grade   = 'false';
             let branch  = 'false';
+            let grade   = 'false';
+            let label   = 'error';
 
             const labels = await github.rest.issues.listLabelsOnIssue({
               owner: context.repo.owner,
@@ -60,46 +58,50 @@ jobs:
             });
 
             if (labels.status != 200) {
-              core.setOutput('valid', 'false');
-              core.setFailed(`Unable to check issue #${context.issue.number} labels. Status: ${labels.status}`);
-              return;
+              core.setFailed(`Unable to fetch labels for issue #${context.issue.number}. Check for any outages and try to re-run this action.`);
+            }
+            else if (labels.data.length == 0) {
+              core.setFailed(`Issue #${context.issue.number} has no labels. Please use the provided issue templates to create issues.`);
+            }
+            else if (labels.data.length > 1) {
+              core.setFailed(`Issue #${context.issue.number} has too many labels. Please remove any "fixme" or "error" labels before re-running this workflow. Found: ${labels.data.map(e => e.name).join(", ")}`);
+            }
+            else { // have exactly 1 label
+              label = labels.data[0].name;
+
+              switch (label) {
+                case 'review-request':
+                  actions = 'checks';
+                  reviews = 'approved';
+                  branch  = 'branch';
+                  break;
+
+                case 'grade-test':
+                  actions = 'tests';
+                  grade   = 'grade';
+                  break;
+
+                case 'grade-review':
+                  reviews = 'approved';
+                  grade   = 'grade';
+                  break;
+
+                case 'grade-release':
+                  actions = 'checks';
+                  reviews = 'passed';
+                  grade   = 'grade';
+                  break;
+
+                default:
+                  core.setFailed(`Issue ${context.issue.number} has an unexpected label: ${label}`);
+              }
             }
 
-            if (labels.data.length != 1) {
-              core.setOutput('valid', 'false');
-              core.setFailed(`This workflow is not configured to respond to this issue. Labels: ${labels.data.map(e => e.name).join(", ")}`);
-              return;
-            }
-            else if (labels.data[0].name == 'review-request') {
-              actions = 'checks';
-              reviews = 'approved';
-              branch  = 'true';
-            }
-            else if (labels.data[0].name == 'grade-test') {
-              actions = 'tests';
-              grade   = 'true';
-            }
-            else if (labels.data[0].name == 'grade-review') {
-              reviews = 'approved';
-              grade   = 'true';
-            }
-            else if (labels.data[0].name == 'grade-release') {
-              actions = 'checks';
-              reviews = 'passed';
-              grade   = 'true';
-            }
-            else {
-              core.setOutput('valid', 'false');
-              core.setFailed(`This workflow is not configured to respond to this issue. Label: ${labels.data[0].name}`);
-              return;
-            }
-
-            core.setOutput('valid', 'true');
             core.setOutput('actions', actions);
             core.setOutput('reviews', reviews);
-            core.setOutput('grade', grade);
             core.setOutput('branch', branch);
-            console.log('Issue type successfully parsed!');
+            core.setOutput('grade', grade);
+            core.setOutput('label', label);
 
       - name: "Check issue body"
         id: check_body
@@ -114,12 +116,11 @@ jobs:
           echo "Hello world"
           echo "::set-output name=release::Pending"
 
-
   check_actions:
     name: "Actions"
     runs-on: ubuntu-latest
     needs: [check_issue]
-    if: ${{ needs.check_issue.outputs.actions != 'false' }}
+    if: ${{ needs.check_issue.outputs.actions == 'checks' || needs.check_issue.outputs.actions == 'tests' }}
     steps:
       - name: "Hello world"
         run: echo "Hello world"
@@ -127,7 +128,7 @@ jobs:
   check_reviews:
     name: "Reviews"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.reviews != 'false' }}
+    if: ${{ needs.check_issue.outputs.reviews == 'approved' || needs.check_issue.outputs.reviews == 'passed' }}
     needs: [check_issue]
     steps:
       - name: "Hello world"
@@ -136,7 +137,7 @@ jobs:
   make_grade:
     name: "Grade"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.grade != 'false' }}
+    if: ${{ needs.check_issue.outputs.grade == 'grade' }}
     needs: [check_issue, check_actions, check_reviews]
     steps:
       - name: "Hello world"
@@ -144,7 +145,7 @@ jobs:
 
   make_branch:
     name: "Branch"
-    if: ${{ needs.check_issue.outputs.branch != 'false' }}
+    if: ${{ needs.check_issue.outputs.branch == 'branch' }}
     needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
     steps:
@@ -153,16 +154,46 @@ jobs:
 
   check_status:
     name: "Status"
-    if: ${{ always() && needs.check_issue.outputs.valid != 'false' }}
+    if: ${{ always() }}
     needs: [check_issue, check_actions, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/github-script@v5
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            let run_details = 'See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.';
+
+            let message = `:octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.`;
+
+            let details = {
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: ':octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.'
-            })
+              issue_number: context.issue.number
+            };
+
+            let assignees = ['sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon'];
+            let labels = [];
+
+            // add existing label if exists
+            if ('${{ needs.check_issue.outputs.label }}') {
+              labels.push('${{ needs.check_issue.outputs.label }}');
+            }
+
+            if ('${{ needs.check_issue.result }}' != 'success') {
+              message = `:no_entry: @${{ github.actor }} there was a problem with your issue and we are unable to process your request. ${run_details} After fixing the problem, you can re-trigger this action by closing and re-opening this issue.`;
+
+              // update issue
+              details.state = 'closed';
+              details.assignees = ['${{ github.actor }}'];
+              details.labels = labels;
+              details.labels.push('error');
+            }
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: message
+            });
+
+            github.rest.issues.update(details);

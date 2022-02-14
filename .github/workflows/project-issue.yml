@@ -169,8 +169,8 @@ jobs:
       - name: "Check release"
         uses: actions/github-script@v6
         env:
-          RELEASE: ${{ needs/check_issue.outputs.release }}
-          LABEL: ${{ needs/check_issue.outputs.label }}
+          RELEASE: ${{ needs.check_issue.outputs.release }}
+          LABEL: ${{ needs.check_issue.outputs.label }}
         with:
           script: |
             const release = process.env.RELEASE;

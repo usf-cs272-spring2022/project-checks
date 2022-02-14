@@ -137,9 +137,9 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 issue_number: context.payload.issue.number,
-                body: `:noentry: ${message} ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`
+                body: `:no_entry: ${message} ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`
               });
-              
+
               core.setFailed(`${message} ${ process.env.FIX_ERRORS }`);
             }
 

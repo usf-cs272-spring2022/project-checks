@@ -215,7 +215,8 @@ jobs:
               core.setFailed(`Unable to find any completed workflow runs for release ${release}.`);
             }
             else {
-              console.log(`Found ${filtered.length} runs for ${release}: ${filtered.map(run => run.head_branch).join(', ')}`);
+              console.log(`Found ${filtered.length} runs for ${release}:`);
+              console.log(filtered);
               return filtered;
             }
 
@@ -265,8 +266,8 @@ jobs:
                   console.log(test_job);
 
                   if (test_job.conclusion == 'success') {
-                    core.setOutput(submitted_id, run.id);
-                    core.setOutput(submitted_date, run.head_commit.timestamp);
+                    core.setOutput('submitted_id', run.id);
+                    core.setOutput('submitted_date', run.head_commit.timestamp);
                     console.log(`ID: ${run.id}, Submitted: ${run.head_commit.timestamp}`);
                     return;
                   }

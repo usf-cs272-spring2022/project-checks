@@ -163,6 +163,10 @@ jobs:
 
             for (const step in steps) {
               console.log(step);
+
+              if (steps[step].outcome == "failure") {
+                console.log(steps[step].outputs);
+              }
             }
 
   check_actions:

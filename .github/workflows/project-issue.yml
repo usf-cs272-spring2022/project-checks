@@ -158,7 +158,7 @@ jobs:
     steps:
       - name: "Find completed action runs"
         uses: actions/github-script@v6
-        id: get_runs
+        id: find_complete
         with:
           script: |
             const runs = await github.rest.actions.listWorkflowRuns({
@@ -189,7 +189,7 @@ jobs:
 
       - name: "Find release runs"
         uses: actions/github-script@v6
-        id: get_runs
+        id: find_release
         env:
           RELEASE: ${{ needs.check_issue.outputs.release }}
         with:

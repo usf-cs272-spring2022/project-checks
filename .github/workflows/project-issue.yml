@@ -252,7 +252,8 @@ jobs:
                   core.setFailed(error_message);
                 }
                 else {
-                  console.log(results);
+                  console.log(results.data.jobs);
+                  // TODO HERE
                 }
               }
 

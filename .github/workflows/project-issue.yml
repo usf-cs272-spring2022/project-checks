@@ -388,6 +388,11 @@ jobs:
             const config = ${{ steps.find_deadline.outputs.result }};
             console.log(config);
 
+            config.submitted_date = DateTime.fromISO(config.submitted_date, {zone: zone});
+            config.deadline = DateTime.fromISO(config.deadline, {zone: zone});
+
+            console.log(`Submitted: ${config.submitted_date.toString()}, Deadline: ${config.deadline.toString()}`);
+
   make_branch:
     name: "Branch"
     if: ${{ !failure() && needs.check_issue.outputs.label == 'request-review' }}

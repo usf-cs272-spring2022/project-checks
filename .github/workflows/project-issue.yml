@@ -134,6 +134,7 @@ jobs:
         with:
           script: |
             const steps = ${{ toJSON(steps) }};
+            console.log(steps);
 
             for (const step in steps) {
               if (steps[step].outcome == "failure" && steps[step].outputs.hasOwnProperty('error_message')) {
@@ -199,15 +200,14 @@ jobs:
 
             const runs = ${{ steps.find_complete.outputs.result }};
             const filtered = runs.filter(run => run.head_branch === release);
-            console.log(`Found ${filtered.length} runs for release ${release}`);
 
-            if (filtered.length < 1) {
+            if (filtered.length <= 1) {
               core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release is correct in the issue title, or create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
               core.setFailed(`Unable to find any completed workflow runs.`);
             }
             else {
-              console.log(`Found ${filtered.length} completed runs: ${filtered.map(run => run.head_branch)}`);
-              return completed;
+              console.log(`Found ${filtered.length} runs for ${release}: ${filtered.map(run => run.head_branch).join(', ')}`);
+              return filtered;
             }
 
       - name: "Check status"
@@ -256,5 +256,18 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const needs = ${{ toJSON(needs) }}
-            console.log(needs);
+            const results = ${{ toJSON(needs) }}
+            console.log(results);
+
+            for (const id in results) {
+              if (results[id].result == "failure" && results[id].outputs.hasOwnProperty('error_message')) {
+                // output the error as an issue comment
+                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: results[id].outputs.error_message});
+              }
+            }
+
+            // close the issue, assign it to the user, and apply the 'error' label
+            const labels = context.payload.issue.labels.map(e => e.name);
+            labels.push('error');
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});

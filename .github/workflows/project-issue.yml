@@ -16,6 +16,10 @@ env:
   PROJECT_3_REVIEW: "2022-04-26"
   PROJECT_4_TESTS:  "2022-05-10"
 
+  POINTS_TESTS:  "100" # possible points for test grades
+  POINTS_REVIEW:  "25" # possible points for review grades
+  POINTS_RELEASE: "50" # possible points for release grades
+
   LATE_TESTS_POINTS:  "2" # number of points per deduction (tests)
   LATE_TESTS_DAYS:    "1" # number of days late per deduction (tests)
 
@@ -46,8 +50,8 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            console.log(context);
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...\n\n:octocat: ${ process.env.RUN_DETAIL}`});
+            console.log(context);
 
       - name: "Check issue labels"
         id: check_labels
@@ -394,7 +398,15 @@ jobs:
             config.deadline = DateTime.fromISO(config.deadline, {zone: zone});
 
             console.log(`Submitted: ${config.submitted_date.toString()}, Deadline: ${config.deadline.toString()}`);
-            console.log('hello');
+
+            if (config.submitted_date <= config.deadline) {
+              core.notice(`The ${config.submitted_type} #${config.submitted_id} for release ${config.release} was submitted on ${config.submitted_date.toLocaleString(DateTime.DATETIME_FULL)}, before the ${config.deadline.toLocaleString(DateTime.DATETIME_FULL)} project ${config.project} deadline.`);
+            }
+            else {
+
+            }
+
+            // update issue with grade details
 
   make_branch:
     name: "Branch"

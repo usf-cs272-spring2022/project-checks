@@ -133,7 +133,7 @@ jobs:
             else {
               const message = `Unable to parse release from issue title. Please make sure to replace \`v0.0.0\` in the issue title with a properly-formated release number.`
 
-              const body = `:noentry: ${message} ${ process.env.FIX_ERRORS }\n\n:information_source: ${ process.env.RUN_DETAIL }`;
+              const body = `:noentry: ${message} ${ process.env.FIX_ERRORS } :information_source: ${ process.env.RUN_DETAIL }`;
 
               github.rest.issues.createComment({
                 owner: context.repo.owner,

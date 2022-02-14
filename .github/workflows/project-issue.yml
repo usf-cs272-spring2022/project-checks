@@ -308,7 +308,12 @@ jobs:
     needs: [check_issue, check_actions, check_reviews]
     steps:
       - name: "Hello world"
-        run: echo "Hello world"
+        run: |
+          echo "Hello world"
+          echo "${{ needs.check_issue.outputs.release }}"
+          echo "${{ needs.check_issue.outputs.label }}"
+          echo "${{ needs.check_actions.outputs.submitted_id }}"
+          echo "${{ needs.check_actions.outputs.submitted_date }}"
 
   make_branch:
     name: "Branch"

@@ -153,6 +153,18 @@ jobs:
               core.setFailed(text_message);
             }
 
+      - name: "Check failures"
+        id: check_failures
+        if: ${{ failure() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const steps = ${{ toJSON(steps) }};
+
+            for (const step in steps) {
+              console.log(step);
+            }
+
   check_actions:
     name: "Actions"
     runs-on: ubuntu-latest

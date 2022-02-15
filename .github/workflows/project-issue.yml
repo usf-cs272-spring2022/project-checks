@@ -463,7 +463,7 @@ jobs:
             }
 
       - name: "Check status"
-        id: calc_grade
+        id: check_status
         uses: actions/github-script@v6
         with:
           script: |

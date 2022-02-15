@@ -85,6 +85,9 @@ jobs:
       - name: "Verify project number"
         id: verify_project_num
         uses: actions/github-script@v6
+        env:
+          RELEASE_TAG: ${{ steps.parse_release.outputs.release_tag }}
+          PROJECT_NUM: ${{ steps.parse_release.outputs.project_num }}
         with:
           script: |
             const release_tag = process.env.RELEASE_TAG
@@ -98,6 +101,10 @@ jobs:
       - name: "Verify review number"
         id: verify_review_num
         uses: actions/github-script@v6
+        env:
+          RELEASE_TAG: ${{ steps.parse_release.outputs.release_tag }}
+          PROJECT_NUM: ${{ steps.parse_release.outputs.project_num }}
+          REVIEWS_NUM: ${{ steps.parse_release.outputs.reviews_num }}
         with:
           script: |
             const release_tag = process.env.RELEASE_TAG

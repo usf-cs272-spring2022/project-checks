@@ -358,6 +358,7 @@ jobs:
               config.maximum[GRADE_RELEASE] = 5;
 
               console.log(config);
+              return config;
 
       - name: "Lookup deadline"
         id: find_deadline

@@ -35,7 +35,7 @@ jobs:
       version_num: ${{ steps.parse_release.outputs.version_num }}
       user_cache: ${{ steps.generate_keys.outputs.user_cache }}
       test_cache: ${{ steps.generate_keys.outputs.test_cache }}
-      
+
     steps:
       - name: "Check workflow trigger"
         id: check_trigger
@@ -47,7 +47,7 @@ jobs:
             echo "::error ::Unexpected workflow trigger. This workflow only works on release tags."
             exit 1
           fi
-          
+
       - name: "Parse release version"
         id: parse_release
         run: |
@@ -55,12 +55,12 @@ jobs:
           RELEASE_TAG="${{ github.ref_name }}"
           echo "Ref: ${RELEASE_REF}"
           echo "Tag: ${RELEASE_TAG}"
-          
+
           if [[ ${RELEASE_TAG} =~ ^v([1-4])\.([0-9]+)\.([0-9]+)$ ]]; then
             PROJECT_NUM=${BASH_REMATCH[1]}
             REVIEWS_NUM=${BASH_REMATCH[2]}
             VERSION_NUM=${BASH_REMATCH[3]}
-            
+
             if [[ ${PROJECT_NUM} -eq 3 ]]; then
               if [[ ${REVIEWS_NUM} -eq 0 ]]; then
                 PROJECT_NUM="3a"
@@ -68,27 +68,54 @@ jobs:
                 PROJECT_NUM="3b"
               fi
             fi
-            
+
             echo "::set-output name=release_tag::${RELEASE_TAG}"
             echo "::set-output name=project_num::${PROJECT_NUM}"
             echo "::set-output name=reviews_num::${REVIEWS_NUM}"
             echo "::set-output name=version_num::${VERSION_NUM}"
-            
+
             echo "Project: ${PROJECT_NUM}"
             echo "Reviews: ${REVIEWS_NUM}"
             echo "Version: ${VERSION_NUM}"
           else
-            echo "::error ::Unable to parse project information from tag. Check the tag uses the v#.#.# format in lowercase."
+            echo "::error ::Unable to parse valid project information from the ${RELEASE_REF} release. Check the version tag uses the v#.#.# format in lowercase with valid values."
             exit 1
           fi
-          
+
+      - name: "Verify project number"
+        id: verify_project_num
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const release_tag = process.env.RELEASE_TAG
+            const project_num = parseInt(process.env.PROJECT_NUM);
+            console.log(`Project: ${project_num}`);
+
+            if (project_num > 1) {
+              core.setFailed(`The release version ${release_tag} is for project ${project_num}. However, you are not yet eligible to start on project ${project_num} functionality.`);
+            }
+
+      - name: "Verify review number"
+        id: verify_review_num
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const release_tag = process.env.RELEASE_TAG
+            const project_num = parseInt(process.env.PROJECT_NUM);
+            const reviews_num = parseInt(process.env.REVIEWS_NUM);
+            console.log(`Reviews: ${reviews_num}`);
+
+            if (reviews_num > 0) {
+              core.setFailed(`The release version ${release_tag} is for projects with ${reviews_num} code reviews. However, you have not yet had that many code reviews for project ${project_num}. Increment the minor version (the last number) in between code review appointments.`);
+            }
+
       - name: "Generate cache keys"
         id: generate_keys
         run: |
           USER_SHA=${{ github.sha }}
           echo "User SHA: ${USER_SHA}"
           echo "::set-output name=user_cache::${USER_PATH}-${USER_SHA}"
-          
+
           TEST_SHA=$(git ls-remote --refs https://github.com/${{ github.repository_owner }}/${TEST_PATH}.git main | head -1 | cut -f 1)
           echo "Test SHA: ${TEST_SHA}"
           echo "::set-output name=test_cache::${TEST_PATH}-${TEST_SHA}"
@@ -106,12 +133,12 @@ jobs:
           test_repo: ${{ github.repository_owner }}/${{ env.TEST_PATH }}
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
-    
+
       - name: "Compile source code"
         working-directory: ${{ env.USER_PATH }}
         run: |
           mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:none -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false compile
-          
+
           if [[ $? -ne 0 ]]; then
             echo "::error ::Unable to compile your project source code."
             exit 1
@@ -131,7 +158,7 @@ jobs:
             echo "::error ::Unable to compile the project test code."
             exit 1
           fi
-          
+
       - name: "Listing test code"
         working-directory: ${{ env.USER_PATH }}
         run: |
@@ -150,12 +177,12 @@ jobs:
           test_repo: ${{ github.repository_owner }}/${{ env.TEST_PATH }}
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
-    
+
       - name: "Recompile code"
         working-directory: ${{ env.USER_PATH }}
         run: |
           mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:none -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false clean compile test-compile
-      
+
       - name: "Run current project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
@@ -180,7 +207,7 @@ jobs:
         working-directory: ${{ env.USER_PATH }}
         run: |
           mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_num }}" test
-          
+
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for the next project did not pass. Your code should not yet support the functionality of the next project."
             exit 1
@@ -199,7 +226,7 @@ jobs:
           test_repo: ${{ github.repository_owner }}/${{ env.TEST_PATH }}
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
-    
+
       - name: "Compile source code"
         working-directory: ${{ env.USER_PATH }}
         run: |
@@ -228,7 +255,7 @@ jobs:
           test_repo: ${{ github.repository_owner }}/${{ env.TEST_PATH }}
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
-    
+
       - name: "Compile source code"
         working-directory: ${{ env.USER_PATH }}
         run: |
@@ -257,18 +284,18 @@ jobs:
           test_repo: ${{ github.repository_owner }}/${{ env.TEST_PATH }}
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
-          
+
       - name: "Check extra main methods"
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
           GREP_STATUS=0
           grep -rnoE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\(' || GREP_STATUS=$?
-          
+
           if [[ GREP_STATUS -ne 1 ]]; then
             echo "::error ::Except for Driver.java, you should delete old main methods from your code."
             exit 1
           fi
-          
+
           echo "Found 0 main methods."
 
       - name: "Check extra TODO comments"
@@ -277,12 +304,12 @@ jobs:
         run: |
           GREP_STATUS=0
           grep -rnoE '(//|\*)?\s*TODO.*$' || GREP_STATUS=$?
-          
+
           if [[ GREP_STATUS -ne 1 ]]; then
             echo "::error ::You should delete old TODO comments from your code."
             exit 1
           fi
-          
+
           echo "Found 0 TODO comments."
 
       - name: "Check for stack traces"
@@ -291,14 +318,14 @@ jobs:
         run: |
           GREP_STATUS=0
           grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;' || GREP_STATUS=$?
-          
+
           if [[ GREP_STATUS -ne 1 ]]; then
             echo "::error ::Your code should not print exception stack traces."
             exit 1
           fi
-          
+
           echo "Found 0 stack traces."
-        
+
   update_release:
     name: "Update Release"
     runs-on: ubuntu-latest
@@ -313,7 +340,7 @@ jobs:
         with:
           script: |
             let message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project 1 tests. This release may not be used to request a grade or code review.`;
-            
+
             if (process.env.TESTS_OKAY === 'true') {
               if (process.env.CHECK === 'true') {
                 message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests and checks. This release may be used to request a project test grade or request code review.`;
@@ -322,7 +349,7 @@ jobs:
                 message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
               }
             }
-            
+
             let body = `
             ## Eligibility
 
@@ -330,15 +357,15 @@ jobs:
               - [${process.env.TESTS_OKAY == 'true' && process.env.CHECKS_OKAY == 'true' ? 'x' : ' '}] Project Review
 
             ## Status
-  
+
             ${ message } ${ process.env.RUN_DETAIL }
             `;
-            
+
             github.rest.repos.updateRelease({
               owner: context.payload.organization.login,
               repo: context.payload.repository.name,
               release_id: context.payload.release.id,
               body: body
             });
-            
+
             core.notice(message);

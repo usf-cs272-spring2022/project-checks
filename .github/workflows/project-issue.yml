@@ -7,27 +7,11 @@ on:
   workflow_call:
 
 env:
-  # project tests and first code review deadlines
-  PROJECT_1_TESTS:  "2022-03-01"
-  PROJECT_1_REVIEW: "2022-03-08"
-  PROJECT_2_TESTS:  "2022-03-29"
-  PROJECT_2_REVIEW: "2022-04-05"
-  PROJECT_3_TESTS:  "2022-04-19"
-  PROJECT_3_REVIEW: "2022-04-26"
-  PROJECT_4_TESTS:  "2022-05-10"
-
-  POINTS_TESTS:  "100" # possible points for test grades
-  POINTS_REVIEW:  "25" # possible points for review grades
-  POINTS_RELEASE: "50" # possible points for release grades
-
-  LATE_TESTS_POINTS:  "2" # number of points per deduction (tests)
-  LATE_TESTS_DAYS:    "1" # number of days late per deduction (tests)
-
-  LATE_REVIEW_POINTS: "5" # number of points per deduction (first code review)
-  LATE_REVIEW_DAYS:   "3" # number of days late per deduction (first code review)
-
-  LATE_MAX_GAP:      "10" # maximum gap in between code reviews
-  LATE_MAX_POINTS:   "26" # maximum number of points to deduct
+  # labels used for different types of requests
+  GRADE_TESTS: "grade-tests" # label used to request tests grade
+  GRADE_REVIEW: "grade-review" # label used to request code review grade
+  GRADE_RELEASE: "grade-release" # label used to request final release grade
+  REQUEST_REVIEW: "request-review" # label used to request code review
 
   # default messages
   RUN_DETAIL: "@${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
@@ -44,6 +28,7 @@ jobs:
       user: ${{ steps.check_body.outputs.user }}
       release: ${{ steps.check_title.outputs.release }}
       project: ${{ steps.check_title.outputs.project }}
+      reviews: ${{ steps.check_title.outputs.reviews }}
 
     steps:
       - name: "Startup"
@@ -124,15 +109,17 @@ jobs:
             const title = context.payload.issue.title;
             console.log(`Issue Title: ${title}`);
 
-            const pattern = /^Request.+\b(v([1-4])\.\d+\.\d+)$/;
+            const pattern = /^Request.+\b(v([1-4])\.(\d+)\.\d+)$/;
             const matched = title.match(pattern);
 
-            if (matched !== null && matched.length === 3) {
+            if (matched !== null && matched.length === 4) {
               const release = matched[1];
               const project = matched[2];
+              const reviews = matched[3];
               core.setOutput('release', release);
               core.setOutput('project', project);
-              console.log(`Release: ${release}, Project: ${project}`);
+              core.setOutput('reviews', reviews);
+              console.log(`Release: ${release}, Project: ${project}, Reviews: ${reviews}`);
             }
             else {
               core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
@@ -318,30 +305,97 @@ jobs:
       error_message: ${{ steps.check_status.outputs.error_message }}
 
     steps:
+      - name: "Load configuration"
+        id: load_config
+        uses: actions/github-script@v6
+        with:
+          script: |
+              // get environment variables
+              const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
+
+              // holds configuration constants
+              const config = {
+                deadline: {},
+                possible: {},
+                deduction: {},
+                duration: {},
+                maximum: {}
+              };
+
+              // when project tests are due
+              config.deadline[GRADE_TESTS] = {
+                project1: '2022-03-01',
+                project2: '2022-03-29',
+                project3: '2022-04-19',
+                project4: '2022-05-10'
+              };
+
+              // when first code reviews are due
+              config.deadline[GRADE_REVIEW] = {
+                project1: '2022-03-08',
+                project2: '2022-04-05',
+                project3: '2022-04-26'
+              };
+
+              // possible points total
+              config.possible[GRADE_TESTS] =  100;
+              config.possible[GRADE_REVIEW] =  25;
+              config.possible[GRADE_RELEASE] = 50;
+
+              // late deduction per x days
+              config.deduction[GRADE_TESTS]   = 2;
+              config.deduction[GRADE_REVIEW]  = 5;
+              config.deduction[GRADE_RELEASE] = 5;
+
+              // x days per late penalty (multiplier)
+              config.duration[GRADE_TESTS]   = 1;
+              config.duration[GRADE_REVIEW]  = 3;
+              config.duration[GRADE_RELEASE] = 10;
+
+              // maximum late penalty
+              config.maximum[GRADE_TESTS]   = 26;
+              config.maximum[GRADE_REVIEW]  = 20;
+              config.maximum[GRADE_RELEASE] = 5;
+
+              console.log(config);
+
       - name: "Lookup deadline"
         id: find_deadline
         uses: actions/github-script@v6
         with:
           script: |
-              const config = {
+              // get environment variables
+              const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
+
+              // get configuration
+              const config = ${{ steps.load_config.outputs.result }};
+
+              // set grading parameters from past steps
+              const results = {
                 label: '${{ needs.check_issue.outputs.label }}',
                 release: '${{ needs.check_issue.outputs.release }}',
-                project: '${{ needs.check_issue.outputs.project }}'
+                project: '${{ needs.check_issue.outputs.project }}',
+                reviews: '${{ needs.check_issue.outputs.reviews }}'
               };
 
-              // set submitted date
-              switch (config.label) {
+              // set parameters based on grade type
+              results.possible = config.posisble[results.label];
+              results.duration = config.duration[results.label];
+              results.maximum  = config.maximum[results.label];
+
+              // set submitted
+              switch (results.label) {
                 // for tests and final release, based on release
-                case 'grade-release':
-                case 'grade-tests':
-                  config.submitted_id = '${{ needs.check_actions.outputs.submitted_id }}';
-                  config.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
-                  config.submitted_type = 'action run';
+                case GRADE_TESTS:
+                case GRADE_RELEASE:
+                  results.submitted_id   = '${{ needs.check_actions.outputs.submitted_id }}';
+                  results.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
+                  results.submitted_type = 'action run';
                   break;
 
                 // for code review, based on pull request approval
-                case 'grade-review':
-                  config.submitted_type = 'pull request';
+                case GRADE_REVIEW:
+                  results.submitted_type = 'pull request';
                   core.warning('Not yet implemented.');
                   break;
 
@@ -349,31 +403,31 @@ jobs:
                   core.setFailed(`Unexpected label: ${config.label}`);
               }
 
-              // set deadline date
-              switch (config.label) {
+              // set deadline
+              switch (results.label) {
                 // based on test deadline
-                case 'grade-tests':
-                  config.deadline = process.env[`PROJECT_${config.project}_TESTS`];
-                  config.late_points = process.env.LATE_TESTS_POINTS;
-                  config.late_days = process.env.LATE_TESTS_DAYS;
+                case GRADE_TESTS:
+                  results.deadline = config.deadline[GRADE_TESTS];
                   break;
 
                 // based on review deadline -or- last code review
-                case 'grade-review':
-                  core.warning('Not yet implemented.');
-                  break;
+                case GRADE_REVIEW:
+                case GRADE_RELEASE:
+                  results.deadline = config.deadline[GRADE_REVIEW];
 
-                // based on last code review
-                case 'grade-release':
-                  core.warning('Not yet implemented.');
+                  if (results.reviews > 0) {
+                    // due +duration from last review
+                    core.warning('Not yet implemented.');
+                  }
+
                   break;
 
                 default:
-                  core.setFailed(`Unexpected label: ${config.label}`);
+                  core.setFailed(`Unexpected label: ${results.label}`);
               }
 
-              console.log(config);
-              return config;
+              console.log(results);
+              return results;
 
       - name: "Setup node"
         uses: actions/setup-node@v2
@@ -391,22 +445,33 @@ jobs:
             const { DateTime } = require('luxon');
             const zone = 'America/Los_Angeles';
 
-            const config = ${{ steps.find_deadline.outputs.result }};
-            console.log(config);
+            const results = ${{ steps.find_deadline.outputs.result }};
+            console.log(results);
 
-            config.submitted_date = DateTime.fromISO(config.submitted_date, {zone: zone});
-            config.deadline = DateTime.fromISO(config.deadline, {zone: zone});
+            // convert date strings to date objects
+            results.submitted_date = DateTime.fromISO(results.submitted_date, {zone: zone});
+            results.deadline = DateTime.fromISO(results.deadline, {zone: zone});
 
-            console.log(`Submitted: ${config.submitted_date.toString()}, Deadline: ${config.deadline.toString()}`);
+            console.log(`Submitted: ${results.submitted_date.toString()}, Deadline: ${results.deadline.toString()}`);
 
-            if (config.submitted_date <= config.deadline) {
-              core.notice(`The ${config.submitted_type} #${config.submitted_id} for release ${config.release} was submitted on ${config.submitted_date.toLocaleString(DateTime.DATETIME_FULL)}, before the ${config.deadline.toLocaleString(DateTime.DATETIME_FULL)} project ${config.project} deadline.`);
+            if (results.submitted_date <= results.deadline) {
+              core.notice(`The ${results.submitted_type} #${results.submitted_id} for release ${results.release} was submitted on ${results.submitted_date.toLocaleString(DateTime.DATETIME_FULL)}, before the ${results.deadline.toLocaleString(DateTime.DATETIME_FULL)} project ${results.project} deadline.`);
+              return;
             }
             else {
 
             }
 
-            // update issue with grade details
+      - name: "Check status"
+        id: calc_grade
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { DateTime } = require('luxon');
+            const zone = 'America/Los_Angeles';
+
+            const results = ${{ steps.find_deadline.outputs.result }};
+            console.log(results);
 
   make_branch:
     name: "Branch"
@@ -431,9 +496,12 @@ jobs:
             console.log(results);
 
             for (const id in results) {
-              if (results[id].result == "failure" && results[id].outputs.hasOwnProperty('error_message')) {
+              if (results[id].result == "failure") {
+                // fetch or create error message
+                const message = results[id].outputs.hasOwnProperty('error_message') ? results[id].outputs.error_message : `:no_entry: The job id \`${}\` failed to complete successfully. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
+
                 // output the error as an issue comment
-                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: results[id].outputs.error_message});
+                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: message});
               }
             }
 

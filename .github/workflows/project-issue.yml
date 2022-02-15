@@ -1,5 +1,8 @@
-# using reusable workflow so do not need to maintain a separate repository and
-# worry about keeping all of the node packages updated
+# reusable workflow
+# - each job listed separately in ui
+# - can fetch job status via api
+# - do not need a separate repository
+# - do not need to keep node packages up to date
 
 name: "Check project issue"
 
@@ -14,8 +17,8 @@ env:
   REQUEST_REVIEW: "request-review" # label used to request code review
 
   # default messages
-  RUN_DETAIL: "@${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
-  FIX_ERRORS: "After addressing the errors, please remove the `error` label and re-open this issue."
+  RUN_DETAIL: "\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+  FIX_ERRORS: "After fixing this request, remove the `error` label and re-open this issue."
 
 jobs:
   check_issue:
@@ -23,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      label: ${{ steps.check_labels.outputs.label }}
+      type: ${{ steps.check_labels.outputs.label }}
       name: ${{ steps.check_body.outputs.name }}
       user: ${{ steps.check_body.outputs.user }}
       release: ${{ steps.check_title.outputs.release }}
@@ -31,11 +34,13 @@ jobs:
       reviews: ${{ steps.check_title.outputs.reviews }}
 
     steps:
+      - run: ls -la
+
       - name: "Startup"
         uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...\n\n:octocat: ${ process.env.RUN_DETAIL}`});
+            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
             console.log(context);
 
       - name: "Check issue labels"
@@ -55,13 +60,13 @@ jobs:
                 case 'grade-tests':
                 case 'grade-review':
                 case 'grade-release':
-                  core.setOutput('label', label);
+                  core.setOutput('type', label);
                   return;
               }
             }
 
             // only errors will get this far
-            core.setOutput('error_message', `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+            core.setOutput('error_message', `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
             core.setFailed(`Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`);
 
       - name: "Check issue body"
@@ -97,7 +102,7 @@ jobs:
             }
 
             // only errors will get this far
-            core.setOutput('error_message', `:no_entry: ${error_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+            core.setOutput('error_message', `:no_entry: ${error_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
             core.setFailed(error_message);
 
       - name: "Check issue title"
@@ -122,7 +127,7 @@ jobs:
               console.log(`Release: ${release}, Project: ${project}, Reviews: ${reviews}`);
             }
             else {
-              core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(`Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`);
             }
 
@@ -152,7 +157,7 @@ jobs:
     name: "Actions"
     runs-on: ubuntu-latest
     needs: [check_issue]
-    if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'review-request' }}
+    if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'grade-tests' || needs.check_issue.outputs.type == 'review-request' }}
 
     outputs:
       error_message: ${{ steps.check_status.outputs.error_message }}
@@ -174,7 +179,7 @@ jobs:
 
             if (runs.status != 200) {
               const error_message = `Unable to fetch runs for "Check project release" action (status ${runs.status}).`;
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(error_message);
             }
             else {
@@ -182,7 +187,7 @@ jobs:
               const filtered = runs.data.workflow_runs.filter(run => run.status === 'completed');
 
               if (filtered.length < 1) {
-                core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs.\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs.\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(`Unable to find any completed workflow runs.`);
               }
               else {
@@ -190,6 +195,9 @@ jobs:
                 return filtered;
               }
             }
+
+            // TODO Fix up RUN_DETAIL use
+            // TODO Fix label to type
 
       - name: "Find release runs"
         uses: actions/github-script@v6

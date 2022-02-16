@@ -145,9 +145,9 @@ jobs:
             });
             console.log(milestones);
 
-            if (created.status != 200) {
-              core.setOutput('error_message', `:no_entry: Unable to list milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-              core.setFailed(`Unable to create ${name} milestone. Status: ${milestones.status}`);
+            if (milestones.status != 200) {
+              core.setOutput('error_message', `:no_entry: Unable to list milestones. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to list milestones. Status: ${milestones.status}`);
               return;
             }
 

@@ -481,7 +481,17 @@ jobs:
             const zone = 'America/Los_Angeles';
 
             const results = ${{ steps.find_deadline.outputs.result }};
-            console.log(results);
+
+            // convert date strings to date objects
+            results.submitted_date = DateTime.fromISO(results.submitted_date, {zone: zone});
+            results.deadline = DateTime.fromISO(results.deadline, {zone: zone});
+
+            console.log(`Submitted: ${results.submitted_date.toString()}, Deadline: ${results.deadline.toString()}`);
+
+            if (results.submitted_date <= results.deadline) {
+              core.notice(`The ${results.submitted_type} #${results.submitted_id} for release ${results.release} was submitted on ${results.submitted_date.toLocaleString(DateTime.DATETIME_FULL)}, before the ${results.deadline.toLocaleString(DateTime.DATETIME_FULL)} project ${results.project} deadline.`);
+              return;
+            }
 
       - name: "Check status"
         id: check_status

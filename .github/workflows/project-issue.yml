@@ -401,19 +401,20 @@ jobs:
 
               // set grading parameters from past steps
               const results = {
-                label: '${{ needs.check_issue.outputs.label }}',
+                type: '${{ needs.check_issue.outputs.type }}',
                 release: '${{ needs.check_issue.outputs.release }}',
                 project: '${{ needs.check_issue.outputs.project }}',
                 reviews: '${{ needs.check_issue.outputs.reviews }}'
               };
 
               // set parameters based on grade type
-              results.possible = config.posisble[results.label];
-              results.duration = config.duration[results.label];
-              results.maximum  = config.maximum[results.label];
+              results.possible = config.posisble[results.type];
+              results.duration = config.duration[results.type];
+              results.maximum  = config.maximum[results.type];
+
 
               // set submitted
-              switch (results.label) {
+              switch (results.type) {
                 // for tests and final release, based on release
                 case GRADE_TESTS:
                 case GRADE_RELEASE:
@@ -429,11 +430,11 @@ jobs:
                   break;
 
                 default:
-                  core.setFailed(`Unexpected label: ${config.label}`);
+                  core.setFailed(`Unexpected label: ${config.type}`);
               }
 
               // set deadline
-              switch (results.label) {
+              switch (results.type) {
                 // based on test deadline
                 case GRADE_TESTS:
                   results.deadline = config.deadline[GRADE_TESTS];
@@ -452,7 +453,7 @@ jobs:
                   break;
 
                 default:
-                  core.setFailed(`Unexpected label: ${results.label}`);
+                  core.setFailed(`Unexpected type: ${results.type}`);
               }
 
               console.log(results);

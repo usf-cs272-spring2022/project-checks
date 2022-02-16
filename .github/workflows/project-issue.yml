@@ -317,7 +317,7 @@ jobs:
   check_reviews:
     name: "Reviews"
     runs-on: ubuntu-latest
-    if: ${{ needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'review-request' }}
+    if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'review-request' }}
     needs: [check_issue]
     steps:
       - name: "Hello world"
@@ -326,7 +326,7 @@ jobs:
   make_grade:
     name: "Grade"
     runs-on: ubuntu-latest
-    if: ${{ !failure() && (needs.check_issue.outputs.label == 'grade-release' || needs.check_issue.outputs.label == 'grade-tests' || needs.check_issue.outputs.label == 'grade-review') }}
+    if: ${{ !failure() && (needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'grade-tests' || needs.check_issue.outputs.type == 'grade-review') }}
     needs: [check_issue, check_actions, check_reviews]
 
     outputs:
@@ -504,7 +504,7 @@ jobs:
 
   make_branch:
     name: "Branch"
-    if: ${{ !failure() && needs.check_issue.outputs.label == 'request-review' }}
+    if: ${{ !failure() && needs.check_issue.outputs.type == 'request-review' }}
     needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
     steps:

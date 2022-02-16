@@ -537,7 +537,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const results = ${{ toJSON(needs) }}
+            const results = ${{ toJSON(needs) }};
             console.log(results);
 
             for (const id in results) {

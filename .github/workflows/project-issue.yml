@@ -411,7 +411,7 @@ jobs:
               results.possible = config.posisble[results.type];
               results.duration = config.duration[results.type];
               results.maximum  = config.maximum[results.type];
-
+              console.log(results);
 
               // set submitted
               switch (results.type) {
@@ -432,6 +432,8 @@ jobs:
                 default:
                   core.setFailed(`Unexpected label: ${config.type}`);
               }
+
+              console.log(results);
 
               // set deadline
               switch (results.type) {

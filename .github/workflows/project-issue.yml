@@ -207,9 +207,11 @@ jobs:
       submitted_date: ${{ steps.find_passing.outputs.submitted_date }}
 
     steps:
-      - name: "Find completed action runs"
+      - name: "Find action runs"
         uses: actions/github-script@v6
-        id: find_complete
+        id: find_runs
+        env:
+          RELEASE: ${{ needs.check_issue.outputs.release }}
         with:
           script: |
             const runs = await github.rest.actions.listWorkflowRuns({
@@ -225,40 +227,19 @@ jobs:
               core.setFailed(error_message);
             }
             else {
-              console.log(`Found ${runs.data.total_count} workflow runs total.`);
-              const filtered = runs.data.workflow_runs.filter(run => run.status === 'completed');
+              const release = process.env.RELEASE;
+              console.log(`Release: ${release}, Total Runs: ${runs.data.total_count}`);
+
+              const filtered = runs.data.workflow_runs.filter(run => run.status === 'completed' && run.head_branch === release);
 
               if (filtered.length < 1) {
-                core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs.\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-                core.setFailed(`Unable to find any completed workflow runs.`);
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: ${release}\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Unable to find any completed workflow runs for release: ${release}`);
               }
               else {
-                console.log(`Found ${filtered.length} completed runs: ${filtered.map(run => run.head_branch).join(', ')}`);
+                console.log(`Found ${filtered.length} completed runs for release ${release}: ${filtered.map(run => run.head_branch).join(', ')}`);
                 return filtered;
               }
-            }
-
-      - name: "Find release runs"
-        uses: actions/github-script@v6
-        id: find_release
-        env:
-          RELEASE: ${{ needs.check_issue.outputs.release }}
-        with:
-          script: |
-            const release = process.env.RELEASE;
-            console.log(`Release: ${release}`);
-
-            const runs = ${{ steps.find_complete.outputs.result }};
-            const filtered = runs.filter(run => run.head_branch === release);
-
-            if (filtered.length < 1) {
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release in the issue title is associated with a completed (*not* in progress, waiting, or cancelled) action run. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-              core.setFailed(`Unable to find any completed workflow runs for release ${release}.`);
-            }
-            else {
-              console.log(`Found ${filtered.length} runs for ${release}:`);
-              console.log(filtered.map(run => run.head_branch).join(', '));
-              return filtered;
             }
 
       - name: "Find passing runs"
@@ -273,7 +254,7 @@ jobs:
             const label = process.env.LABEL;
             console.log(`Label: ${label}, Release: ${release}`);
 
-            const runs = ${{ steps.find_release.outputs.result }};
+            const runs = ${{ steps.find_runs.outputs.result }};
 
             // try to find a successful run
             const success = runs.find(run => run.conclusion === 'success');

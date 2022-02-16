@@ -143,15 +143,20 @@ jobs:
               repo: context.repo.repo,
               per_page: 100
             });
+            console.log(milestones);
 
-            let found = milestones.find(milestone => milestone.title == name);
+            if (created.status != 200) {
+              core.setOutput('error_message', `:no_entry: Unable to list milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to create ${name} milestone. Status: ${milestones.status}`);
+              return;
+            }
+
+            let found = milestones.data.find(milestone => milestone.title == name);
+            console.log(found);
 
             if (found == undefined) {
-              const created = await github.rest.issues.createMilestone({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                title: name
-              });
+              const created = await github.rest.issues.createMilestone({ owner: context.repo.owner, repo: context.repo.repo, title: name });
+              console.log(created);
 
               if (created.status != 201) {
                 core.setOutput('error_message', `:no_entry: Unable to create ${name} milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);

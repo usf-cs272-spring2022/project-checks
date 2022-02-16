@@ -168,7 +168,7 @@ jobs:
             }
 
             core.setOutput('mile', found.number);
-            console.log(`Milestone ${found.title} has id: ${found.number}`);
+            console.log(`Milestone ${found.title} has number: ${found.number}`);
 
       - name: "Check failures"
         id: check_failures
@@ -542,11 +542,7 @@ jobs:
 
             for (const id in results) {
               if (results[id].result == "failure") {
-                // fetch or create error message
-                const message = results[id].outputs.hasOwnProperty('error_message') ? results[id].outputs.error_message : `:no_entry: The job id \`${}\` failed to complete successfully. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`;
 
-                // output the error as an issue comment
-                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: message});
               }
             }
 

@@ -542,7 +542,12 @@ jobs:
 
             for (const id in results) {
               if (results[id].result == "failure") {
-                const message = results[id].outputs.error_message;
+                let message = results[id].outputs.error_message;
+
+                if (!message) {
+                  message = `:no_entry: The job id \`${}\` failed to complete successfully. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`;
+                }
+                
                 github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: message});
               }
             }

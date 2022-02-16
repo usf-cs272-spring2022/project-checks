@@ -407,6 +407,11 @@ jobs:
                 reviews: '${{ needs.check_issue.outputs.reviews }}'
               };
 
+              // set parameters based on grade type
+              results.possible = config.posisble[results.type];
+              results.duration = config.duration[results.type];
+              results.maximum  = config.maximum[results.type];
+
               console.log(results);
               return results;
 

@@ -34,7 +34,7 @@ jobs:
       reviews: ${{ steps.check_title.outputs.reviews }}
 
     steps:
-      - run: ls -la /
+      - run: find / -name testing.txt
 
       - name: "Startup"
         uses: actions/github-script@v6

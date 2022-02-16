@@ -29,13 +29,12 @@ jobs:
       type: ${{ steps.check_labels.outputs.label }}
       name: ${{ steps.check_body.outputs.name }}
       user: ${{ steps.check_body.outputs.user }}
+      mile: ${{ steps.check_miles.outputs.mile }}
       release: ${{ steps.check_title.outputs.release }}
       project: ${{ steps.check_title.outputs.project }}
       reviews: ${{ steps.check_title.outputs.reviews }}
 
     steps:
-      - run: find / -name testing.txt
-
       - name: "Startup"
         uses: actions/github-script@v6
         with:
@@ -131,6 +130,41 @@ jobs:
               core.setFailed(`Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`);
             }
 
+      - name: "Check milestones"
+        id: check_miles
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const name = 'Project ${{ steps.check_title.outputs.project }}';
+            console.log(`Milestone: ${name}`);
+
+            const milestones = await github.rest.issues.listMilestones({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              per_page: 100
+            });
+
+            let found = milestones.find(milestone => milestone.title == name);
+
+            if (found == undefined) {
+              const created = await github.rest.issues.createMilestone({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: name
+              });
+
+              if (created.status != 201) {
+                core.setOutput('error_message', `:no_entry: Unable to create ${name} milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Unable to create ${name} milestone. Status: ${created.status}`);
+                return;
+              }
+
+              found = created.data.id;
+            }
+
+            core.setOutput('mile', found.id);
+            console.log(`Milestone ${found.title} has id: ${found.id}`);
+
       - name: "Check failures"
         id: check_failures
         if: ${{ failure() }}
@@ -196,9 +230,6 @@ jobs:
               }
             }
 
-            // TODO Fix up RUN_DETAIL use
-            // TODO Fix label to type
-
       - name: "Find release runs"
         uses: actions/github-script@v6
         id: find_release
@@ -213,7 +244,7 @@ jobs:
             const filtered = runs.filter(run => run.head_branch === release);
 
             if (filtered.length < 1) {
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release in the issue title is associated with a completed (*not* in progress, waiting, or cancelled) action run. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: \`${release}\`\n\nMake sure the release in the issue title is associated with a completed (*not* in progress, waiting, or cancelled) action run. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(`Unable to find any completed workflow runs for release ${release}.`);
             }
             else {
@@ -259,7 +290,7 @@ jobs:
 
                 if (results.status != 200) {
                   const error_message = `Unable to fetch jobs for action run ${run.id}.`;
-                  core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+                  core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                   core.setFailed(error_message);
                 }
                 else {
@@ -277,11 +308,11 @@ jobs:
               }
 
               // only get here if no successful test run found
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests for release \`${release}\`.\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`);
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests for release \`${release}\`.\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(`No runs found that passed all tests for release ${release}.`);
             }
             else {
-              core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }');
+              core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }');
               core.setFailed(`No runs found that passed all tests and checks for release ${release}.`);
             }
 
@@ -507,7 +538,7 @@ jobs:
             for (const id in results) {
               if (results[id].result == "failure") {
                 // fetch or create error message
-                const message = results[id].outputs.hasOwnProperty('error_message') ? results[id].outputs.error_message : `:no_entry: The job id \`${}\` failed to complete successfully. ${ process.env.FIX_ERRORS }\n\n:octocat: ${ process.env.RUN_DETAIL }`;
+                const message = results[id].outputs.hasOwnProperty('error_message') ? results[id].outputs.error_message : `:no_entry: The job id \`${}\` failed to complete successfully. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`;
 
                 // output the error as an issue comment
                 github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: message});

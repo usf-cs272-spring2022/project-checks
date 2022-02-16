@@ -545,9 +545,9 @@ jobs:
                 let message = results[id].outputs.error_message;
 
                 if (!message) {
-                  message = `:no_entry: The job id \`${}\` failed to complete successfully. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`;
+                  message = `:no_entry: The job id \`${id}\` failed to complete successfully. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`;
                 }
-                
+
                 github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: message});
               }
             }

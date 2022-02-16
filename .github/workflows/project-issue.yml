@@ -164,11 +164,11 @@ jobs:
                 return;
               }
 
-              found = created.data.id;
+              found = created.data;
             }
 
-            core.setOutput('mile', found.id);
-            console.log(`Milestone ${found.title} has id: ${found.id}`);
+            core.setOutput('mile', found.number);
+            console.log(`Milestone ${found.title} has id: ${found.number}`);
 
       - name: "Check failures"
         id: check_failures

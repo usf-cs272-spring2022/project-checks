@@ -26,7 +26,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      type: ${{ steps.check_labels.outputs.label }}
+      type: ${{ steps.check_labels.outputs.type }}
       name: ${{ steps.check_body.outputs.name }}
       user: ${{ steps.check_body.outputs.user }}
       mile: ${{ steps.check_miles.outputs.mile }}
@@ -542,7 +542,7 @@ jobs:
 
             for (const id in results) {
               if (results[id].result == "failure") {
-
+                const message = results[id].outputs.error_message;
               }
             }
 

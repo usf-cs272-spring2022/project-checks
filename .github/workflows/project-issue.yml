@@ -399,67 +399,8 @@ jobs:
               // get configuration
               const config = ${{ steps.load_config.outputs.result }};
 
-              // set grading parameters from past steps
-              const results = {
-                type: '${{ needs.check_issue.outputs.type }}',
-                release: '${{ needs.check_issue.outputs.release }}',
-                project: '${{ needs.check_issue.outputs.project }}',
-                reviews: '${{ needs.check_issue.outputs.reviews }}'
-              };
-
-              // set parameters based on grade type
-              results.possible = config.posisble[results.type];
-              results.duration = config.duration[results.type];
-              results.maximum  = config.maximum[results.type];
-              console.log(results);
-
-              // set submitted
-              switch (results.type) {
-                // for tests and final release, based on release
-                case GRADE_TESTS:
-                case GRADE_RELEASE:
-                  results.submitted_id   = '${{ needs.check_actions.outputs.submitted_id }}';
-                  results.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
-                  results.submitted_type = 'action run';
-                  break;
-
-                // for code review, based on pull request approval
-                case GRADE_REVIEW:
-                  results.submitted_type = 'pull request';
-                  core.warning('Not yet implemented.');
-                  break;
-
-                default:
-                  core.setFailed(`Unexpected label: ${config.type}`);
-              }
-
-              console.log(results);
-
-              // set deadline
-              switch (results.type) {
-                // based on test deadline
-                case GRADE_TESTS:
-                  results.deadline = config.deadline[GRADE_TESTS];
-                  break;
-
-                // based on review deadline -or- last code review
-                case GRADE_REVIEW:
-                case GRADE_RELEASE:
-                  results.deadline = config.deadline[GRADE_REVIEW];
-
-                  if (results.reviews > 0) {
-                    // due +duration from last review
-                    core.warning('Not yet implemented.');
-                  }
-
-                  break;
-
-                default:
-                  core.setFailed(`Unexpected type: ${results.type}`);
-              }
-
-              console.log(results);
-              return results;
+              console.log('hello');
+              
 
       - name: "Setup node"
         uses: actions/setup-node@v2

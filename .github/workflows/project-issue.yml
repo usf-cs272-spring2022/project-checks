@@ -361,17 +361,17 @@ jobs:
 
               // when project tests are due
               config.deadline[GRADE_TESTS] = {
-                project1: '2022-03-01',
-                project2: '2022-03-29',
-                project3: '2022-04-19',
-                project4: '2022-05-10'
+                project1: '2022-03-01T23:59:59Z',
+                project2: '2022-03-29T23:59:59Z',
+                project3: '2022-04-19T23:59:59Z',
+                project4: '2022-05-10T23:59:59Z'
               };
 
               // when first code reviews are due
               config.deadline[GRADE_REVIEW] = {
-                project1: '2022-03-08',
-                project2: '2022-04-05',
-                project3: '2022-04-26'
+                project1: '2022-03-08T23:59:59Z',
+                project2: '2022-04-05T23:59:59Z',
+                project3: '2022-04-26T23:59:59Z'
               };
 
               // possible points total
@@ -513,7 +513,7 @@ jobs:
               core.notice(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, before the ${results.deadline_text} deadline.`);
             }
             else {
-
+              const late_diff = results.submitted_date.
             }
 
             return results;

@@ -328,8 +328,14 @@ jobs:
     if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'review-request' }}
     needs: [check_issue]
     steps:
-      - name: "Hello world"
-        run: echo "Hello world"
+      - uses: actions/github-script@v6
+        with:
+          script: |
+            // know passes tests know valid request
+            // check last code review date (if review > 0)
+            // calculate deadline or last_review_date as 10 plus that date
+            // calculate submitted date as date of code review
+            console.log("hello world");
 
   make_grade:
     name: "Grade"

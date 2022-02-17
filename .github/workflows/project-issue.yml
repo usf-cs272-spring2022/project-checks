@@ -296,6 +296,7 @@ jobs:
                   if (test_job.conclusion == 'success') {
                     core.setOutput('submitted_id', run.id);
                     core.setOutput('submitted_date', run.head_commit.timestamp);
+                    core.setOutput('submitted_link', `[Run ID ${run.id}](${context.payload.repository.html_url}/actions/runs/${run.id})`);
                     console.log(`ID: ${run.id}, Submitted: ${run.head_commit.timestamp}`);
                     return;
                   }
@@ -429,7 +430,7 @@ jobs:
                 case GRADE_RELEASE:
                   results.submitted_id   = '${{ needs.check_actions.outputs.submitted_id }}';
                   results.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
-                  results.submitted_link = `[Run ID ${results.submitted_id}](${context.payload.issue.repository_url}/actions/runs/${results.submitted_id})`;
+                  results.submitted_link = '${{ needs.check_actions.outputs.submitted_link }}';
                   break;
 
                 // for code review, based on pull request approval

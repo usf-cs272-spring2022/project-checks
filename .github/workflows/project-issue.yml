@@ -347,7 +347,8 @@ jobs:
                 possible: {},
                 deduction: {},
                 duration: {},
-                maximum: {}
+                maximum: {},
+                assignment: {}
               };
 
               // when project tests are due

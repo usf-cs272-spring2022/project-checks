@@ -498,7 +498,7 @@ jobs:
             }
 
       - name: "Check success"
-        id: check_status
+        id: check_success
         if: ${{ success() }}
         uses: actions/github-script@v6
         with:
@@ -528,7 +528,7 @@ jobs:
             console.log(body);
 
       - name: "Check failure"
-        id: check_status
+        id: check_failure
         if: ${{ failure() }}
         uses: actions/github-script@v6
         with:

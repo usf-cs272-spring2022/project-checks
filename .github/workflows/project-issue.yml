@@ -124,6 +124,12 @@ jobs:
               core.setOutput('project', project);
               core.setOutput('reviews', reviews);
               console.log(`Release: ${release}, Project: ${project}, Reviews: ${reviews}`);
+
+              if (parseInt(reviews) > 1 && ${{ steps.check_labels.outputs.type }} == ${{ env.GRADE_REVIEW }}) {
+                // only request code review grades for code review 0 and 1
+                core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews.\n\n> ${title}\n\n ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Invalid request; you can only request code review grades for your first two code reviews.`);
+              }
             }
             else {
               core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
@@ -539,7 +545,7 @@ jobs:
 
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: body});
 
-            const assignees = [ 'sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon' ];
+            const assignees = ['sjengle']; // [ 'sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon' ];
             const labels = [results.type, `project${results.project}`];
 
             github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'open', assignees: assignees, labels: labels, milestone: ${{ needs.check_issue.outputs.mile }}});

@@ -211,7 +211,7 @@ jobs:
       error_message: ${{ steps.check_status.outputs.error_message }}
       submitted_id: ${{ steps.find_passing.outputs.submitted_id }}
       submitted_date: ${{ steps.find_passing.outputs.submitted_date }}
-      submitted_date: ${{ steps.find_passing.outputs.submitted_link }}
+      submitted_link: ${{ steps.find_passing.outputs.submitted_link }}
 
     steps:
       - name: "Find action runs"
@@ -511,8 +511,12 @@ jobs:
 
             if (results.submitted_date <= results.deadline) {
               core.notice(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, before the ${results.deadline_text} deadline.`);
-              return results;
             }
+            else {
+
+            }
+
+            return results;
 
       - name: "Check success"
         id: check_success

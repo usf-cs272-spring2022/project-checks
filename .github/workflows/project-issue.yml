@@ -386,9 +386,9 @@ jobs:
               config.maximum[GRADE_RELEASE] = 5;
 
               // assignment names
-              config.assignment[GRADE_TESTS]   = "Tests";
-              config.assignment[GRADE_REVIEW]  = "Code Review";
-              config.assignment[GRADE_RELEASE] = "Final Release";
+              config.assignment[GRADE_TESTS]   = 'Tests';
+              config.assignment[GRADE_REVIEW]  = 'Code Review';
+              config.assignment[GRADE_RELEASE] = 'Final Release';
 
               console.log(config);
               return config;

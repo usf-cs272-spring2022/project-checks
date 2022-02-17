@@ -375,7 +375,7 @@ jobs:
             ## Eligibility
 
               - [${process.env.TESTS_OKAY == 'true' ? 'x' : ' '}] Project Test
-              - [${process.env.TESTS_OKAY == 'true' && process.env.CHECKS_OKAY == 'true' ? 'x' : ' '}] Project Review
+              - [${process.env.TESTS_OKAY == 'true' && process.env.CHECK_OKAY == 'true' ? 'x' : ' '}] Project Review
 
             ## Status
 

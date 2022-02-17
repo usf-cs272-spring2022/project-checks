@@ -532,6 +532,13 @@ jobs:
             `;
             console.log(body);
 
+            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: body});
+
+            const assignees = [ 'sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon' ];
+            const labels = [results.type, `project${results.project}`];
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'open', assignees: assignees, labels: labels, milestone: ${{ needs.check_issue.outputs.mile }}});
+
       - name: "Check failure"
         id: check_failure
         if: ${{ failure() }}
@@ -552,7 +559,7 @@ jobs:
 
   check_status:
     name: "Status"
-    if: ${{ always() }}
+    if: ${{ failure() }}
     needs: [check_actions, check_reviews, make_grade, make_branch]
     runs-on: ubuntu-latest
     steps:

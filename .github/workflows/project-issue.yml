@@ -125,7 +125,7 @@ jobs:
               core.setOutput('reviews', reviews);
               console.log(`Release: ${release}, Project: ${project}, Reviews: ${reviews}`);
 
-              if (parseInt(reviews) > 1 && ${{ steps.check_labels.outputs.type }} == ${{ env.GRADE_REVIEW }}) {
+              if (parseInt(reviews) > 1 && '${{ steps.check_labels.outputs.type }}' == '${{ env.GRADE_REVIEW }}') {
                 // only request code review grades for code review 0 and 1
                 core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews.\n\n> ${title}\n\n ${ process.env.RUN_DETAIL }`);
                 core.setFailed(`Invalid request; you can only request code review grades for your first two code reviews.`);
@@ -211,6 +211,7 @@ jobs:
       error_message: ${{ steps.check_status.outputs.error_message }}
       submitted_id: ${{ steps.find_passing.outputs.submitted_id }}
       submitted_date: ${{ steps.find_passing.outputs.submitted_date }}
+      submitted_date: ${{ steps.find_passing.outputs.submitted_link }}
 
     steps:
       - name: "Find action runs"

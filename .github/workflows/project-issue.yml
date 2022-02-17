@@ -516,7 +516,7 @@ jobs:
             }
             else {
               const late_diff = results.submitted_date.diff(results.deadline, 'days');
-              results.late_days = Math.floor(late_diff.toObject().days);
+              results.late_days = Math.ceil(late_diff.toObject().days);
               console.log(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, which is ${results.late_days} late.`);
 
               const late_mult = Math.ceil(results.late_days / results.duration);

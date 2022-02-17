@@ -385,6 +385,11 @@ jobs:
               config.maximum[GRADE_REVIEW]  = 20;
               config.maximum[GRADE_RELEASE] = 5;
 
+              // assignment names
+              config.assignment[GRADE_TESTS]   = "Tests";
+              config.assignment[GRADE_REVIEW]  = "Code Review";
+              config.assignment[GRADE_RELEASE] = "Final Release";
+
               console.log(config);
               return config;
 
@@ -393,10 +398,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-              // get environment variables
               const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
-
-              // get configuration
               const config = ${{ steps.load_config.outputs.result }};
 
               // set grading parameters from past steps
@@ -410,7 +412,8 @@ jobs:
               // set parameters based on grade type
               results.possible = config.possible[results.type];
               results.duration = config.duration[results.type];
-              results.maximum  = config.maximum[results.type];
+              results.maximum = config.maximum[results.type];
+              results.assignment = `Project ${results.project} ${config.assignment[results.type]}`;
 
               // set submitted
               switch (results.type) {
@@ -419,13 +422,14 @@ jobs:
                 case GRADE_RELEASE:
                   results.submitted_id   = '${{ needs.check_actions.outputs.submitted_id }}';
                   results.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
-                  results.submitted_type = 'action run';
+                  results.submitted_link = `[Run ID ${results.submitted_id}](${context.payload.issue.repository_url}/actions/runs/${results.submitted_id})`;
                   break;
 
                 // for code review, based on pull request approval
                 case GRADE_REVIEW:
                   results.submitted_type = 'pull request';
-                  core.warning('Not yet implemented.');
+                  results.assignment = `${results.assignment} ${results.reviews + 1}`;
+                  core.setFailed('Not yet implemented.');
                   break;
 
                 default:
@@ -452,7 +456,7 @@ jobs:
 
                   if (results.reviews > 0) {
                     // due +duration from last review
-                    core.warning('Not yet implemented.');
+                    core.setFailed('Not yet implemented.');
                   }
 
                   break;
@@ -490,10 +494,40 @@ jobs:
 
             if (results.submitted_date <= results.deadline) {
               core.notice(`The ${results.submitted_type} #${results.submitted_id} for release ${results.release} was submitted on ${results.submitted_date.toLocaleString(DateTime.DATETIME_FULL)}, before the ${results.deadline.toLocaleString(DateTime.DATETIME_FULL)} project ${results.project} deadline.`);
-              return;
+              return results;
             }
 
-      - name: "Check status"
+      - name: "Check success"
+        id: check_status
+        if: ${{ success() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const results = ${{ steps.calc_grade.outputs.result }};
+
+            const body = `
+            :robot: @${{ github.actor }} your grade request has been processed! See the details below.
+
+            |  |  |
+            |----:|:-----|
+            | Student: | ${{ needs.check_issue.outputs.name }} |
+            | Username: | \`${{ needs.check_issue.outputs.user }}\` |
+            | | |
+            | Assignment: | \`${results.assignment}\` |
+            | Deadline: | ${results.deadline.toLocaleString(DateTime.DATETIME_FULL)} |
+            | Submitted: | ${results.submitted_date.toLocaleString(DateTime.DATETIME_FULL)} |
+            | Verification: | ${results.submitted_link} |
+            | | |
+            | Late Penalty: | ${results.release} points |
+            | Late Days: | ${results.release} days |
+            | | |
+            | Late Grade: | ${results.release} points |
+
+            You will receive a notice once your grade has been updated on Canvas.
+            `;
+            console.log(body);
+
+      - name: "Check failure"
         id: check_status
         if: ${{ failure() }}
         uses: actions/github-script@v6

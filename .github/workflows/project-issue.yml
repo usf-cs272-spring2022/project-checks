@@ -497,8 +497,12 @@ jobs:
 
             console.log(`Submitted: ${results.submitted_date.toString()}, Deadline: ${results.deadline.toString()}`);
 
+            results.earned = parseInt(results.possible);
+            results.late_days = 0;
+            results.late_deduction = 0;
+
             if (results.submitted_date <= results.deadline) {
-              core.notice(`The ${results.submitted_type} #${results.submitted_id} for release ${results.release} was submitted on ${results.submitted_text}, before the ${results.deadline_text} project ${results.project} deadline.`);
+              core.notice(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, before the ${results.deadline_text} deadline.`);
               return results;
             }
 
@@ -523,10 +527,11 @@ jobs:
             | Submitted: | ${results.submitted_text} |
             | Verification: | ${results.submitted_link} |
             | | |
-            | Late Penalty: | ${results.release} points |
-            | Late Days: | ${results.release} days |
+            | Late Days: | ${results.late_days} days |
+            | Late Penalty: | ${results.late_deduction} points |
             | | |
-            | Late Grade: | ${results.release} points |
+            | Possible Grade: | ${results.possible} points |
+            | Earned Grade: | **${results.earned} points** |
 
             You will receive a notice once your grade has been updated on Canvas.
             `;

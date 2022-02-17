@@ -363,7 +363,7 @@ jobs:
             let message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project 1 tests. This release may not be used to request a grade or code review.`;
 
             if (process.env.TESTS_OKAY === 'true') {
-              if (process.env.CHECK === 'true') {
+              if (process.env.CHECK_OKAY === 'true') {
                 message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests and checks. This release may be used to request a project test grade or request code review.`;
               }
               else {

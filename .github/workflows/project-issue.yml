@@ -1,19 +1,600 @@
+# reusable workflow
+# - each job listed separately in ui
+# - can fetch job status via api
+# - do not need a separate repository
+# - do not need to keep node packages up to date
+
 name: "Check project issue"
 
 on:
   workflow_call:
 
+env:
+  # labels used for different types of requests
+  GRADE_TESTS: "grade-tests" # label used to request tests grade
+  GRADE_REVIEW: "grade-review" # label used to request code review grade
+  GRADE_RELEASE: "grade-release" # label used to request final release grade
+  REQUEST_REVIEW: "request-review" # label used to request code review
+
+  # default messages
+  RUN_DETAIL: "\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+  FIX_ERRORS: "After fixing this request, remove the `error` label and re-open this issue."
+
 jobs:
   check_issue:
-    name: "Check Issue"
+    name: "Issue"
     runs-on: ubuntu-latest
+
+    outputs:
+      type: ${{ steps.check_labels.outputs.type }}
+      name: ${{ steps.check_body.outputs.name }}
+      user: ${{ steps.check_body.outputs.user }}
+      mile: ${{ steps.check_miles.outputs.mile }}
+      release: ${{ steps.check_title.outputs.release }}
+      project: ${{ steps.check_title.outputs.project }}
+      reviews: ${{ steps.check_title.outputs.reviews }}
+
     steps:
-      - uses: actions/github-script@v5
+      - name: "Startup"
+        uses: actions/github-script@v6
         with:
           script: |
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
+            console.log(context);
+
+      - name: "Check issue labels"
+        id: check_labels
+        if: ${{ always() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const labels = context.payload.issue.labels.map(e => e.name);
+            console.log(`Labels: ${labels}`);
+
+            if (labels.length == 1) {
+              const label = labels[0];
+
+              switch (label) {
+                case 'review-request':
+                case 'grade-tests':
+                case 'grade-review':
+                case 'grade-release':
+                  core.setOutput('type', label);
+                  return;
+              }
+            }
+
+            // only errors will get this far
+            core.setOutput('error_message', `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+            core.setFailed(`Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`);
+
+      - name: "Check issue body"
+        id: check_body
+        if: ${{ always() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const body = context.payload.issue.body;
+            let error_message = undefined;
+
+            try {
+              const pattern = /```json([^`]+)```/;
+              const matched = body.match(pattern);
+
+              const parsed = JSON.parse(matched[1]);
+              console.log(`Parsed: ${JSON.stringify(parsed)}`);
+
+              if(!parsed.hasOwnProperty('name') || !parsed.hasOwnProperty('username')) {
+                error_message = `Both the "name" and "username" properties are required in the issue #${ context.payload.issue.number } body.`;
+              }
+              else if (parsed.name === "FULL_NAME" || parsed.username === "USF_USERNAME") {
+                error_message = `The "name" and "username" properties in the issue #${ context.payload.issue.number } body must be updated.`;
+              }
+              else {
+                core.setOutput('name', parsed.name);
+                core.setOutput('user', parsed.username);
+                return;
+              }
+            }
+            catch (error) {
+              error_message = `Unable to parse issue #${ context.payload.issue.number } body as JSON. Error: ${error.message}`;
+            }
+
+            // only errors will get this far
+            core.setOutput('error_message', `:no_entry: ${error_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+            core.setFailed(error_message);
+
+      - name: "Check issue title"
+        id: check_title
+        if: ${{ always() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const title = context.payload.issue.title;
+            console.log(`Issue Title: ${title}`);
+
+            const pattern = /^Request.+\b(v([1-4])\.(\d+)\.\d+)$/;
+            const matched = title.match(pattern);
+
+            if (matched !== null && matched.length === 4) {
+              const release = matched[1];
+              const project = matched[2];
+              const reviews = matched[3];
+              core.setOutput('release', release);
+              core.setOutput('project', project);
+              core.setOutput('reviews', reviews);
+              console.log(`Release: ${release}, Project: ${project}, Reviews: ${reviews}`);
+
+              if (parseInt(reviews) > 1 && ${{ steps.check_labels.outputs.type }} == ${{ env.GRADE_REVIEW }}) {
+                // only request code review grades for code review 0 and 1
+                core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews.\n\n> ${title}\n\n ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Invalid request; you can only request code review grades for your first two code reviews.`);
+              }
+            }
+            else {
+              core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`);
+            }
+
+      - name: "Check milestones"
+        id: check_miles
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const name = 'Project ${{ steps.check_title.outputs.project }}';
+            console.log(`Milestone: ${name}`);
+
+            const milestones = await github.rest.issues.listMilestones({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: ':octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.'
-            })
+              per_page: 100
+            });
+            console.log(milestones);
+
+            if (milestones.status != 200) {
+              core.setOutput('error_message', `:no_entry: Unable to list milestones. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`Unable to list milestones. Status: ${milestones.status}`);
+              return;
+            }
+
+            let found = milestones.data.find(milestone => milestone.title == name);
+            console.log(found);
+
+            if (found == undefined) {
+              const created = await github.rest.issues.createMilestone({ owner: context.repo.owner, repo: context.repo.repo, title: name });
+              console.log(created);
+
+              if (created.status != 201) {
+                core.setOutput('error_message', `:no_entry: Unable to create ${name} milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Unable to create ${name} milestone. Status: ${created.status}`);
+                return;
+              }
+
+              found = created.data;
+            }
+
+            core.setOutput('mile', found.number);
+            console.log(`Milestone ${found.title} has number: ${found.number}`);
+
+      - name: "Check failures"
+        id: check_failures
+        if: ${{ failure() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const steps = ${{ toJSON(steps) }};
+            console.log(steps);
+
+            for (const step in steps) {
+              if (steps[step].outcome == "failure" && steps[step].outputs.hasOwnProperty('error_message')) {
+                // output the error as an issue comment
+                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: steps[step].outputs.error_message});
+              }
+            }
+
+            // close the issue, assign it to the user, and apply the 'error' label
+            const labels = context.payload.issue.labels.map(e => e.name);
+            labels.push('error');
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
+
+  check_actions:
+    name: "Actions"
+    runs-on: ubuntu-latest
+    needs: [check_issue]
+    # top-level environment variables not yet supported
+    # https://github.community/t/use-env-variable-for-jobs-id-runs-on-and-jobs-id-services-image/17281/3
+    # https://docs.github.com/en/actions/learn-github-actions/contexts#env-context
+    if: ${{ needs.check_issue.outputs.type == 'grade-tests' || needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'request-review' }}
+
+    outputs:
+      error_message: ${{ steps.check_status.outputs.error_message }}
+      submitted_id: ${{ steps.find_passing.outputs.submitted_id }}
+      submitted_date: ${{ steps.find_passing.outputs.submitted_date }}
+
+    steps:
+      - name: "Find action runs"
+        uses: actions/github-script@v6
+        id: find_runs
+        env:
+          RELEASE: ${{ needs.check_issue.outputs.release }}
+        with:
+          script: |
+            const runs = await github.rest.actions.listWorkflowRuns({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'project-release.yml',
+              per_page: 100
+            });
+
+            if (runs.status != 200) {
+              const error_message = `Unable to fetch runs for "Check project release" action (status ${runs.status}).`;
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(error_message);
+            }
+            else {
+              const release = process.env.RELEASE;
+              console.log(`Release: ${release}, Total Runs: ${runs.data.total_count}`);
+
+              const filtered = runs.data.workflow_runs.filter(run => run.status === 'completed' && run.head_branch === release);
+
+              if (filtered.length < 1) {
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: ${release}\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Unable to find any completed workflow runs for release: ${release}`);
+              }
+              else {
+                console.log(`Found ${filtered.length} completed runs for release ${release}: ${filtered.map(run => run.head_branch).join(', ')}`);
+                return filtered;
+              }
+            }
+
+      - name: "Find passing runs"
+        uses: actions/github-script@v6
+        id: find_passing
+        env:
+          RELEASE: ${{ needs.check_issue.outputs.release }}
+          TYPE: ${{ needs.check_issue.outputs.type }}
+        with:
+          script: |
+            const release = process.env.RELEASE;
+            const type = process.env.TYPE;
+            console.log(`Type: ${type}, Release: ${release}`);
+
+            const runs = ${{ steps.find_runs.outputs.result }};
+
+            // try to find a successful run
+            const success = runs.find(run => run.conclusion === 'success');
+
+            if (success != undefined) {
+              console.log(`Found successful run:`);
+              console.log(success);
+              core.setOutput(submitted_id, success.id);
+              core.setOutput(submitted_date, success.head_commit.timestamp);
+              console.log(`ID: ${success.id}, Submitted: ${success.head_commit.timestamp}`);
+              return;
+            }
+            else if (type == '${{ env.GRADE_TESTS }}') {
+              for (const run of runs) {
+                const results = await github.rest.actions.listJobsForWorkflowRun({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  run_id: run.id,
+                  filter: 'latest',
+                  per_page: 100
+                });
+
+                if (results.status != 200) {
+                  const error_message = `Unable to fetch jobs for action run ${run.id}.`;
+                  core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                  core.setFailed(error_message);
+                }
+                else {
+                  const test_job = results.data.jobs.find(job => job.name == 'Check / JUnit Tests');
+                  console.log(`Check / JUnit Tests:`);
+                  console.log(test_job);
+
+                  if (test_job.conclusion == 'success') {
+                    core.setOutput('submitted_id', run.id);
+                    core.setOutput('submitted_date', run.head_commit.timestamp);
+                    console.log(`ID: ${run.id}, Submitted: ${run.head_commit.timestamp}`);
+                    return;
+                  }
+                }
+              }
+
+              // only get here if no successful test run found
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests for release \`${release}\`.\n\nMake sure the release in the issue title is associated with a completed run that passes all of the tests (the other checks are *optional* for this grade). ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(`No runs found that passed all tests for release ${release}.`);
+            }
+            else {
+              core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }');
+              core.setFailed(`No runs found that passed all tests and checks for release ${release}.`);
+            }
+
+      - name: "Check status"
+        id: check_status
+        if: ${{ failure() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log(process.env.ERROR_MESSAGE);
+            core.setOutput('error_message', process.env.ERROR_MESSAGE);
+
+  check_reviews:
+    name: "Reviews"
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'review-request' }}
+    needs: [check_issue]
+    steps:
+      - name: "Hello world"
+        run: echo "Hello world"
+
+  make_grade:
+    name: "Grade"
+    runs-on: ubuntu-latest
+    if: ${{ !failure() && (needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'grade-tests' || needs.check_issue.outputs.type == 'grade-review') }}
+    needs: [check_issue, check_actions, check_reviews]
+
+    outputs:
+      error_message: ${{ steps.check_status.outputs.error_message }}
+
+    steps:
+      - name: "Load configuration"
+        id: load_config
+        uses: actions/github-script@v6
+        with:
+          script: |
+              // get environment variables
+              const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
+
+              // holds configuration constants
+              const config = {
+                deadline: {},
+                possible: {},
+                deduction: {},
+                duration: {},
+                maximum: {},
+                assignment: {}
+              };
+
+              // when project tests are due
+              config.deadline[GRADE_TESTS] = {
+                project1: '2022-03-01',
+                project2: '2022-03-29',
+                project3: '2022-04-19',
+                project4: '2022-05-10'
+              };
+
+              // when first code reviews are due
+              config.deadline[GRADE_REVIEW] = {
+                project1: '2022-03-08',
+                project2: '2022-04-05',
+                project3: '2022-04-26'
+              };
+
+              // possible points total
+              config.possible[GRADE_TESTS] =  100;
+              config.possible[GRADE_REVIEW] =  25;
+              config.possible[GRADE_RELEASE] = 50;
+
+              // late deduction per x days
+              config.deduction[GRADE_TESTS]   = 2;
+              config.deduction[GRADE_REVIEW]  = 5;
+              config.deduction[GRADE_RELEASE] = 5;
+
+              // x days per late penalty (multiplier)
+              config.duration[GRADE_TESTS]   = 1;
+              config.duration[GRADE_REVIEW]  = 3;
+              config.duration[GRADE_RELEASE] = 10;
+
+              // maximum late penalty
+              config.maximum[GRADE_TESTS]   = 26;
+              config.maximum[GRADE_REVIEW]  = 20;
+              config.maximum[GRADE_RELEASE] = 5;
+
+              // assignment names
+              config.assignment[GRADE_TESTS]   = 'Tests';
+              config.assignment[GRADE_REVIEW]  = 'Code Review';
+              config.assignment[GRADE_RELEASE] = 'Final Release';
+
+              console.log(config);
+              return config;
+
+      - name: "Lookup deadline"
+        id: find_deadline
+        uses: actions/github-script@v6
+        with:
+          script: |
+              const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
+              const config = ${{ steps.load_config.outputs.result }};
+
+              // set grading parameters from past steps
+              const results = {
+                type: '${{ needs.check_issue.outputs.type }}',
+                release: '${{ needs.check_issue.outputs.release }}',
+                project: '${{ needs.check_issue.outputs.project }}',
+                reviews: '${{ needs.check_issue.outputs.reviews }}'
+              };
+
+              // set parameters based on grade type
+              results.possible = config.possible[results.type];
+              results.duration = config.duration[results.type];
+              results.maximum = config.maximum[results.type];
+              results.assignment = `Project ${results.project} ${config.assignment[results.type]}`;
+
+              // set submitted
+              switch (results.type) {
+                // for tests and final release, based on release
+                case GRADE_TESTS:
+                case GRADE_RELEASE:
+                  results.submitted_id   = '${{ needs.check_actions.outputs.submitted_id }}';
+                  results.submitted_date = '${{ needs.check_actions.outputs.submitted_date }}';
+                  results.submitted_link = `[Run ID ${results.submitted_id}](${context.payload.issue.repository_url}/actions/runs/${results.submitted_id})`;
+                  break;
+
+                // for code review, based on pull request approval
+                case GRADE_REVIEW:
+                  results.submitted_type = 'pull request';
+                  results.assignment = `${results.assignment} ${results.reviews + 1}`;
+                  core.setFailed('Not yet implemented.');
+                  break;
+
+                default:
+                  core.setFailed(`Unexpected type: ${config.type}`);
+              }
+
+              // set deadline
+              switch (results.type) {
+                // based on test deadline
+                case GRADE_TESTS:
+                  results.deadline = config.deadline[GRADE_TESTS][`project${results.project}`];
+                  break;
+
+                // based on review deadline -or- last code review
+                case GRADE_REVIEW:
+                case GRADE_RELEASE:
+                  // not used for project 4
+                  if (parseInt(results.project) > 3) {
+                    core.exportVariable('ERROR_MESSAGE', `:no_entry: This grade request is not supported for project ${results.project}. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                    core.setFailed(`This grade request is not supported for project ${results.project}.`);
+                  }
+
+                  results.deadline = config.deadline[GRADE_REVIEW][`project${results.project}`];
+
+                  if (results.reviews > 0) {
+                    // due +duration from last review
+                    core.setFailed('Not yet implemented.');
+                  }
+
+                  break;
+
+                default:
+                  core.setFailed(`Unexpected type: ${results.type}`);
+              }
+
+              console.log(results);
+              return results;
+
+      - name: "Setup node"
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: "Install luxon"
+        run: npm install luxon
+
+      - name: "Calculate grade"
+        id: calc_grade
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const { DateTime } = require('luxon');
+            const zone = 'America/Los_Angeles';
+
+            const results = ${{ steps.find_deadline.outputs.result }};
+
+            // convert date strings to date objects
+            results.submitted_date = DateTime.fromISO(results.submitted_date, {zone: zone});
+            results.deadline = DateTime.fromISO(results.deadline, {zone: zone});
+
+            // save text representations
+            results.submitted_text = results.submitted_date.toLocaleString(DateTime.DATETIME_FULL);
+            results.deadline_text = results.deadline.toLocaleString(DateTime.DATETIME_FULL);
+
+            console.log(`Submitted: ${results.submitted_date.toString()}, Deadline: ${results.deadline.toString()}`);
+
+            results.earned = parseInt(results.possible);
+            results.late_days = 0;
+            results.late_deduction = 0;
+
+            if (results.submitted_date <= results.deadline) {
+              core.notice(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, before the ${results.deadline_text} deadline.`);
+              return results;
+            }
+
+      - name: "Check success"
+        id: check_success
+        if: ${{ success() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const results = ${{ steps.calc_grade.outputs.result }};
+
+            const body = `
+            :robot: @${{ github.actor }} your grade request has been processed! See the details below.
+
+            |  |  |
+            |----:|:-----|
+            | Student: | ${{ needs.check_issue.outputs.name }} |
+            | Username: | \`${{ needs.check_issue.outputs.user }}\` |
+            | | |
+            | Assignment: | \`${results.assignment}\` |
+            | Deadline: | ${results.deadline_text} |
+            | Submitted: | ${results.submitted_text} |
+            | Verification: | ${results.submitted_link} |
+            | | |
+            | Late Days: | ${results.late_days} days |
+            | Late Penalty: | ${results.late_deduction} points |
+            | | |
+            | Possible Grade: | ${results.possible} points |
+            | Earned Grade: | **${results.earned} points** |
+
+            You will receive a notice once your grade has been updated on Canvas.
+            `;
+            console.log(body);
+
+            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: body});
+
+            const assignees = ['sjengle']; // [ 'sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon' ];
+            const labels = [results.type, `project${results.project}`];
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'open', assignees: assignees, labels: labels, milestone: ${{ needs.check_issue.outputs.mile }}});
+
+      - name: "Check failure"
+        id: check_failure
+        if: ${{ failure() }}
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log(process.env.ERROR_MESSAGE);
+            core.setOutput('error_message', process.env.ERROR_MESSAGE);
+
+  make_branch:
+    name: "Branch"
+    if: ${{ !failure() && needs.check_issue.outputs.type == 'request-review' }}
+    needs: [check_issue, check_actions, check_reviews]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Hello world"
+        run: echo "Hello world"
+
+  check_status:
+    name: "Status"
+    if: ${{ failure() }}
+    needs: [check_actions, check_reviews, make_grade, make_branch]
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Check status"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const results = ${{ toJSON(needs) }};
+            console.log(results);
+
+            for (const id in results) {
+              if (results[id].result == "failure") {
+                let message = results[id].outputs.error_message;
+
+                if (!message) {
+                  message = `:no_entry: The job \`${id}\` failed to complete successfully. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`;
+                }
+
+                github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: message});
+              }
+            }
+
+            // close the issue, assign it to the user, and apply the 'error' label
+            const labels = context.payload.issue.labels.map(e => e.name);
+            labels.push('error');
+
+            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});

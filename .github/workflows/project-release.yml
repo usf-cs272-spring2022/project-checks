@@ -4,8 +4,12 @@ on:
   workflow_call:
     outputs:
       project_num:
-        description: "The project number (e.g. 1, 2, 3a, 3b, or 4)."
+        description: "The project number (e.g. 1, 2, 3, or 4)."
         value: ${{ jobs.check_release.outputs.project_num }}
+
+      project_ver:
+        description: "The project version (e.g. 1, 2, 3a, 3b, or 4)."
+        value: ${{ jobs.check_release.outputs.project_ver }}
 
       reviews_num:
         description: "The number of code reviews (e.g. 2 for tag v1.2.3)."
@@ -13,7 +17,7 @@ on:
 
       version_num:
         description: "The minor version number (e.g. 3 for tag v1.2.3)."
-        value: ${{ jobs.check_release.outputs.reviews_num }}
+        value: ${{ jobs.check_release.outputs.version_num }}
 
       release_tag:
         description: "The project version (e.g. v1.0.0)."
@@ -30,6 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_tag: ${{ steps.parse_release.outputs.release_tag }}
+      project_ver: ${{ steps.parse_release.outputs.project_ver }}
       project_num: ${{ steps.parse_release.outputs.project_num }}
       reviews_num: ${{ steps.parse_release.outputs.reviews_num }}
       version_num: ${{ steps.parse_release.outputs.version_num }}
@@ -61,24 +66,33 @@ jobs:
             REVIEWS_NUM=${BASH_REMATCH[2]}
             VERSION_NUM=${BASH_REMATCH[3]}
 
+            PROJECT_VER=${PROJECT_NUM}
+
             if [[ ${PROJECT_NUM} -eq 3 ]]; then
               if [[ ${REVIEWS_NUM} -eq 0 ]]; then
-                PROJECT_NUM="3a"
+                PROJECT_VER="3a"
               else
-                PROJECT_NUM="3b"
+                PROJECT_VER="3b"
               fi
             fi
 
             echo "::set-output name=release_tag::${RELEASE_TAG}"
+            echo "::set-output name=project_ver::${PROJECT_VER}"
             echo "::set-output name=project_num::${PROJECT_NUM}"
             echo "::set-output name=reviews_num::${REVIEWS_NUM}"
             echo "::set-output name=version_num::${VERSION_NUM}"
 
-            echo "Project: ${PROJECT_NUM}"
+            echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+            echo "PROJECT_VER=${PROJECT_VER}" >> $GITHUB_ENV
+            echo "PROJECT_NUM=${PROJECT_NUM}" >> $GITHUB_ENV
+            echo "REVIEWS_NUM=${REVIEWS_NUM}" >> $GITHUB_ENV
+            echo "VERSION_NUM=${VERSION_NUM}" >> $GITHUB_ENV
+
+            echo "Project: ${PROJECT_VER}"
             echo "Reviews: ${REVIEWS_NUM}"
             echo "Version: ${VERSION_NUM}"
           else
-            echo "::error ::Unable to parse valid project information from the ${RELEASE_REF} release. Check the version tag uses the v#.#.# format in lowercase with valid values."
+            echo "::error ::Unable to parse project information from tag. Check the tag uses the v#.#.# format in lowercase and each # is an integer value."
             exit 1
           fi
 
@@ -193,7 +207,7 @@ jobs:
       - name: "Run current project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="test${{ needs.check_release.outputs.project_num }}" test
+          mvn -ntp -Dgroups="test${{ needs.check_release.outputs.project_ver }}" test
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for this project did not pass."
@@ -203,7 +217,7 @@ jobs:
       - name: "Run previous project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_num }}" test
+          mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_ver }}" test
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for the past project did not pass. Your code must still support the functionality of past projects."
@@ -213,7 +227,7 @@ jobs:
       - name: "Run next project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_num }}" test
+          mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_ver }}" test
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::One or more tests for the next project did not pass. Your code should not yet support the functionality of the next project."
@@ -334,26 +348,26 @@ jobs:
           echo "Found 0 stack traces."
 
   update_release:
-    name: "Update Release"
+    name: "Status"
     runs-on: ubuntu-latest
     needs: [check_release, check_compile, check_tests, check_source_warnings, check_javadoc_warnings, check_code_style]
     if: ${{ always() }}
     steps:
-      - uses: actions/github-script@v5
+      - uses: actions/github-script@v6
         env:
           TESTS_OKAY: ${{ needs.check_tests.result == 'success' }}
           CHECK_OKAY: ${{ needs.check_source_warnings.result == 'success' && needs.check_javadoc_warnings.result == 'success' && needs.check_code_style.result == 'success' }}
-          PROJECT_NUM: ${{ needs.check_release.outputs.project_num }}
+          PROJECT_VER: ${{ needs.check_release.outputs.project_ver }}
         with:
           script: |
             let message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project 1 tests. This release may not be used to request a grade or code review.`;
 
             if (process.env.TESTS_OKAY === 'true') {
               if (process.env.CHECK === 'true') {
-                message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests and checks. This release may be used to request a project test grade or request code review.`;
+                message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests and checks. This release may be used to request a project test grade or request code review.`;
               }
               else {
-                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_NUM } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
+                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
               }
             }
 

@@ -361,7 +361,8 @@ jobs:
 
               // when project tests are due
               config.deadline[GRADE_TESTS] = {
-                project1: '2022-03-01T23:59:59Z',
+                project1: '2022-02-09T23:59:59Z',
+                // project1: '2022-03-01T23:59:59Z',
                 project2: '2022-03-29T23:59:59Z',
                 project3: '2022-04-19T23:59:59Z',
                 project4: '2022-05-10T23:59:59Z'
@@ -419,9 +420,10 @@ jobs:
               };
 
               // set parameters based on grade type
-              results.possible = config.possible[results.type];
-              results.duration = config.duration[results.type];
-              results.maximum = config.maximum[results.type];
+              results.possible = parseInt(config.possible[results.type]);
+              results.deduction = parseInt( config.deduction[results.type]);
+              results.duration = parseInt(config.duration[results.type]);
+              results.maximum = parseInt(config.maximum[results.type]);
               results.assignment = `Project ${results.project} ${config.assignment[results.type]}`;
 
               // set submitted
@@ -513,7 +515,16 @@ jobs:
               core.notice(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, before the ${results.deadline_text} deadline.`);
             }
             else {
-              const late_diff = results.submitted_date.
+              const late_diff = results.submitted_date.diff(results.deadline, 'days');
+              results.late_days = late_diff.toObject().days;
+              console.log(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, which is ${results.late_days} late.`);
+
+              const late_mult = 1 + Math.floor(results.late_days / results.duration);
+              const late_loss = late_mult * results.deduction
+              results.late_deduction = Math.min(late_loss, results.maximum);
+              console.log(`The calculated late penalty is ${late_loss}, or ${results.late_deduction} after considering a maximum ${results.maximum} penalty.`);
+
+              results.earned = results.earned -results.late_deduction;
             }
 
             return results;

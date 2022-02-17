@@ -361,18 +361,18 @@ jobs:
 
               // when project tests are due
               config.deadline[GRADE_TESTS] = {
-                project1: '2022-02-09T23:59:59Z',
-                // project1: '2022-03-01T23:59:59Z',
-                project2: '2022-03-29T23:59:59Z',
-                project3: '2022-04-19T23:59:59Z',
-                project4: '2022-05-10T23:59:59Z'
+                project1: '2022-02-09T23:59:59',
+                // project1: '2022-03-01T23:59:59',
+                project2: '2022-03-29T23:59:59',
+                project3: '2022-04-19T23:59:59',
+                project4: '2022-05-10T23:59:59'
               };
 
               // when first code reviews are due
               config.deadline[GRADE_REVIEW] = {
-                project1: '2022-03-08T23:59:59Z',
-                project2: '2022-04-05T23:59:59Z',
-                project3: '2022-04-26T23:59:59Z'
+                project1: '2022-03-08T23:59:59',
+                project2: '2022-04-05T23:59:59',
+                project3: '2022-04-26T23:59:59'
               };
 
               // possible points total
@@ -516,10 +516,10 @@ jobs:
             }
             else {
               const late_diff = results.submitted_date.diff(results.deadline, 'days');
-              results.late_days = late_diff.toObject().days;
+              results.late_days = Math.floor(late_diff.toObject().days);
               console.log(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, which is ${results.late_days} late.`);
 
-              const late_mult = 1 + Math.floor(results.late_days / results.duration);
+              const late_mult = Math.ceil(results.late_days / results.duration);
               const late_loss = late_mult * results.deduction
               results.late_deduction = Math.min(late_loss, results.maximum);
               console.log(`The calculated late penalty is ${late_loss}, or ${results.late_deduction} after considering a maximum ${results.maximum} penalty.`);

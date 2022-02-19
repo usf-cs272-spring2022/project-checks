@@ -269,8 +269,8 @@ jobs:
             if (success != undefined) {
               console.log(`Found successful run:`);
               console.log(success);
-              core.setOutput(submitted_id, success.id);
-              core.setOutput(submitted_date, success.head_commit.timestamp);
+              core.setOutput('submitted_id', success.id);
+              core.setOutput('submitted_date', success.head_commit.timestamp);
               console.log(`ID: ${success.id}, Submitted: ${success.head_commit.timestamp}`);
               return;
             }

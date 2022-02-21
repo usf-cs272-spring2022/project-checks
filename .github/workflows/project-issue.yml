@@ -676,7 +676,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const body = `:robot: @${{ github.actor }} your code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
+            const body = `:robot: The code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
 
             \`\`\`json
             {
@@ -687,6 +687,8 @@ jobs:
               "run_id": "${{ github.run_id }}"
             }
             \`\`\`
+
+            This pull request closes #${context.payload.issue.number} -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
             `;
 
             const result = await github.rest.pulls.create({
@@ -722,17 +724,11 @@ jobs:
             const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}')}&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
             console.log(link);
 
-            const body = `:robot: @${{ github.actor }} your code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed!
+            const body = `:spiral_calendar: @${{ github.actor }} use [**this personalized appointment signup link**](${link}) to sign up for a code review.
 
-            This pull request resolves #${context.payload.issue.number} -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
+            The **earliest** you may have a code review is PENDING. You must have a code review by PENDING to avoid late penalties. You may only have one upcoming appointment at a time!
 
-            :spiral_calendar: Use the following link to sign up for a code review appointment:
-
-            [**Personalized Code Review Signup Link**](${link})
-
-            The **earliest** you may have a code review is PENDING. You must have a code review by PENDING to avoid late penalties.
-
-            :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request and re-request a code review.
+            :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
             `;
 
             // add instructions

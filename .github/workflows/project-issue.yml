@@ -710,14 +710,6 @@ jobs:
 
             return result;
 
-      - name: "Testing"
-        working-directory: "project-main"
-        env:
-          PULL_NUMBER: ${{ steps.create_pull.outputs.result.data.number }}
-        run: |
-          gh auth login --with-token ${{ secrets.GITHUB_TOKEN }}
-          gh pr comment ${PULL_NUMBER} --body "Testing"
-
       - name: "Update pull request"
         uses: actions/github-script@v6
         with:
@@ -798,12 +790,8 @@ jobs:
             core.setOutput('error_message', process.env.ERROR_MESSAGE);
 
 # TODO Make branch
-# Create a branch based on the release and commit a small change
-# Setup a pull request with appropriate labels, milestone, assignee, and requested review.
-# Associate the issue with the pull request.
 # Check the type of review request (approved for normal or quick review).
 # Add comment to issue and pull request with when the appointment should happen.
-# Add a pre-filled calendly link for signing up.
 
   check_status:
     name: "Status"

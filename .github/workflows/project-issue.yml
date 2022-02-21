@@ -621,12 +621,16 @@ jobs:
 
           git diff --exit-code --quiet origin/main refs/tags/${{ needs.check_issue.outputs.release }}
 
+          echo "Testing after quiet"
+
           if [[ $? -ne 0 ]]; then
             ERROR_MESSAGE="Hello"
             echo "ERROR_MESSAGE=World" >> $GITHUB_ENV
             echo "::error ::Hello world"
             exit 1
           fi
+
+          echo "Testing here"
 
       - name: "Check status"
         id: check_status

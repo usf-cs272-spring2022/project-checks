@@ -112,6 +112,10 @@ jobs:
               core.setFailed(`The release version ${release_tag} is for project ${project_num}. However, you are not yet eligible to start on project ${project_num} functionality.`);
             }
 
+# TODO Verify project number
+# For projects 2, 3, and 4, make sure there has been at least one code review of the previous project.
+# This will be done by checking if there is an approved pull request.
+
       - name: "Verify review number"
         id: verify_review_num
         uses: actions/github-script@v6
@@ -129,6 +133,9 @@ jobs:
             if (reviews_num > 0) {
               core.setFailed(`The release version ${release_tag} is for projects with ${reviews_num} code reviews. However, you have not yet had that many code reviews for project ${project_num}. Increment the minor version (the last number) in between code review appointments.`);
             }
+
+# TODO Verify review number
+# Check that the number of approved pull requests matches the number of code reviews.
 
       - name: "Generate cache keys"
         id: generate_keys

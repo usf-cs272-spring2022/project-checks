@@ -17,3 +17,22 @@ jobs:
               repo: context.repo.repo,
               body: ':octocat: Hi @${{ github.actor }}! This action is not yet working. Please reach out on Piazza instead.'
             })
+
+# TODO Check review
+# When a pull request review is submitted, check the status. If the status was
+# approved by the instructor, then indicate the request is being processed.
+# Otherwise, do nothing.
+#
+# To process the request, check the review comment. There are three possible
+# results:
+#
+# 1. Resubmit for another normal review -or- quick review. Apply the appropriate
+#    labels and respond with instructions for how to request the next appointment.
+#    Include what range of dates the next appointment should occur.
+#
+# 2. Conditional pass or pass. Apply the appropriate labels and respond with
+#    instructions for how to prepare the final release. Include when the final
+#    release should be created by to avoid late penalties.
+#
+# 3. Other. This could be associated with a cancelled review for some reason. No
+#    labels should be applied.

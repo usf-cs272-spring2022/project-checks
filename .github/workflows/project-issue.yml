@@ -667,7 +667,99 @@ jobs:
             exit 1
           fi
 
-      - name: "Check status"
+      # TODO Change title to "Quick Review" if appropriate
+
+      - name: "Create pull request"
+        id: create_pull
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const body = `:robot: @{{ github.actor }} [code review request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
+
+            \`\`\`json
+            {
+              "name": "${{ needs.check_issue.outputs.name }}",
+              "username": "${{ needs.check_issue.outputs.user }}",
+              "project": ${{ needs.check_issue.outputs.project }},
+              "release": "${{ needs.check_issue.outputs.release }}",
+              "run_id" "${{ github.run_id }}"
+            }
+            \`\`\`
+
+            Use the following link to sign up for a code review appointment:
+
+            <#>
+
+            The **earliest** you may have a code review is PENDING. You must have a code review by PENDING to avoid late penalties.
+
+            :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request and re-request a code review.
+            `;
+
+            const result = await github.rest.pulls.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: 'Code Review ${{ needs.check_issue.outputs.release }}',
+              head: 'review/${{ needs.check_issue.outputs.release }}',
+              base: 'main',
+              issue: context.payload.issue.number,
+              body: body
+            });
+
+            if (result.status != 201) {
+              const error_message = `Unable to create pull request for release ${{ needs.check_issue.outputs.release }} (status ${result.status}).`;
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(error_message);
+            }
+
+            return result;
+
+      - name: "Update pull request"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            // only used if something here fails
+            core.exportVariable('ERROR_MESSAGE', `:no_entry: Something went wrong updating the pull request. Reach out to the instructor on Piazza for next steps. ${ process.env.RUN_DETAIL }`);
+
+            // get pull request results
+            const results = ${{ steps.create_pull.outputs.result }};
+
+            github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: results.data.number,
+              assignees: ['${{ github.actor }}'],
+              labels: ['project${{ needs.check_issue.outputs.project }}'],
+              milestone: ${{ needs.check_issue.outputs.mile }}
+            });
+
+            github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: results.data.number,
+              reviewers: ['sjengle']
+            });
+
+            const body = `:robot: @{{ github.actor }} your code review request has been processed! See pull request #${results.data.number} for additional instructions.
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: body
+            });
+
+            github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              assignees: ['${{ github.actor }}'],
+              labels: ['${{ needs.check_issue.outputs.type }}', 'project${{ needs.check_issue.outputs.project }}'],
+              milestone: ${{ needs.check_issue.outputs.mile }},
+              state: 'closed'
+            });
+
+      - name: "Check failure"
         id: check_status
         if: ${{ failure() }}
         uses: actions/github-script@v6

@@ -310,7 +310,7 @@ jobs:
               core.setFailed(`No runs found that passed all tests for release ${release}.`);
             }
             else {
-              core.exportVariable('ERROR_MESSAGE', ':no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }');
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: No runs found that passed all tests and checks for release \`${release}\`.\n\n\n\nMake sure there is a **completed** and **successful** run that passes all of the required tests and checks. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(`No runs found that passed all tests and checks for release ${release}.`);
             }
 

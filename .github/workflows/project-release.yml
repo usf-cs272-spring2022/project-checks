@@ -165,9 +165,10 @@ jobs:
       - name: "Compile source code"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:none -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false compile
+          RUN_STATUS=0
+          mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:none -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false compile || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::Unable to compile your project source code."
             exit 1
           fi
@@ -180,9 +181,10 @@ jobs:
       - name: "Compile test code"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp "-DcompileOptionXlint=-Xlint:none" "-DcompileOptionXdoclint=-Xdoclint:none" -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false test-compile
+          RUN_STATUS=0
+          mvn -ntp "-DcompileOptionXlint=-Xlint:none" "-DcompileOptionXdoclint=-Xdoclint:none" -Dmaven.compiler.showWarnings=false -DcompileOptionFail=false test-compile || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::Unable to compile the project test code."
             exit 1
           fi
@@ -214,9 +216,10 @@ jobs:
       - name: "Run current project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="test${{ needs.check_release.outputs.project_ver }}" test
+          RUN_STATUS=0
+          mvn -ntp -Dgroups="test${{ needs.check_release.outputs.project_ver }}" test || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::One or more tests for this project did not pass."
             exit 1
           fi
@@ -224,9 +227,10 @@ jobs:
       - name: "Run previous project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_ver }}" test
+          RUN_STATUS=0
+          mvn -ntp -Dgroups="past${{ needs.check_release.outputs.project_ver }}" test || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::One or more tests for the past project did not pass. Your code must still support the functionality of past projects."
             exit 1
           fi
@@ -234,9 +238,10 @@ jobs:
       - name: "Run next project tests"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_ver }}" test
+          RUN_STATUS=0
+          mvn -ntp -Dgroups="next${{ needs.check_release.outputs.project_ver }}" test || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::One or more tests for the next project did not pass. Your code should not yet support the functionality of the next project."
             exit 1
           fi
@@ -258,9 +263,10 @@ jobs:
       - name: "Compile source code"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp "-DcompileOptionXlint=-Xlint:all,-processing" "-DcompileOptionXdoclint=-Xdoclint:none" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile
+          RUN_STATUS=0
+          mvn -ntp "-DcompileOptionXlint=-Xlint:all,-processing" "-DcompileOptionXdoclint=-Xdoclint:none" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::Unable to compile the project source code without warnings."
             exit 1
           fi
@@ -287,9 +293,10 @@ jobs:
       - name: "Compile Javadoc comments"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp "-DcompileOptionXlint=-Xlint:none" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile
+          RUN_STATUS=0
+          mvn -ntp "-DcompileOptionXlint=-Xlint:none" "-DcompileOptionXdoclint=-Xdoclint:all/private" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile || RUN_STATUS=$?
 
-          if [[ $? -ne 0 ]]; then
+          if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::Unable to compile the project source code without Javadoc warnings."
             exit 1
           fi
@@ -316,10 +323,10 @@ jobs:
       - name: "Check extra main methods"
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          GREP_STATUS=0
-          grep -rnoE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\(' || GREP_STATUS=$?
+          RUN_STATUS=0
+          grep -rnoE --exclude=Driver.java '\s*public\s+static\s+void\s+main\s*\(' || RUN_STATUS=$?
 
-          if [[ GREP_STATUS -ne 1 ]]; then
+          if [[ RUN_STATUS -ne 1 ]]; then
             echo "::error ::Except for Driver.java, you should delete old main methods from your code."
             exit 1
           fi
@@ -330,10 +337,10 @@ jobs:
         if: ${{ always() }}
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          GREP_STATUS=0
-          grep -rnoE '(//|\*)?\s*TODO.*$' || GREP_STATUS=$?
+          RUN_STATUS=0
+          grep -rnoE '(//|\*)?\s*TODO.*$' || RUN_STATUS=$?
 
-          if [[ GREP_STATUS -ne 1 ]]; then
+          if [[ RUN_STATUS -ne 1 ]]; then
             echo "::error ::You should delete old TODO comments from your code."
             exit 1
           fi
@@ -344,10 +351,10 @@ jobs:
         if: ${{ always() }}
         working-directory: ${{ env.USER_PATH }}/src/main/java
         run: |
-          GREP_STATUS=0
-          grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;' || GREP_STATUS=$?
+          RUN_STATUS=0
+          grep -rnoE '\w\.printStackTrace\([^)]*\)\s*;' || RUN_STATUS=$?
 
-          if [[ GREP_STATUS -ne 1 ]]; then
+          if [[ RUN_STATUS -ne 1 ]]; then
             echo "::error ::Your code should not print exception stack traces."
             exit 1
           fi

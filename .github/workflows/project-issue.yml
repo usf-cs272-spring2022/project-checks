@@ -698,10 +698,9 @@ jobs:
             const result = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'Code Review ${{ needs.check_issue.outputs.release }}',
+              issue: context.payload.issue.number,
               head: 'review/${{ needs.check_issue.outputs.release }}',
               base: 'main',
-              issue: context.payload.issue.number,
               body: body
             });
 
@@ -723,6 +722,23 @@ jobs:
             // get pull request results
             const results = ${{ steps.create_pull.outputs.result }};
 
+            // update pull request title
+            github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: results.data.number,
+              title: 'Code Review ${{ needs.check_issue.outputs.release }}'
+            });
+
+            // request code review
+            github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: results.data.number,
+              reviewers: ['sjengle']
+            });
+
+            // update pull request labels and milestone
             github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -732,23 +748,16 @@ jobs:
               milestone: ${{ needs.check_issue.outputs.mile }}
             });
 
-            github.rest.pulls.requestReviewers({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: results.data.number,
-              reviewers: ['sjengle']
-            });
-
-            const body = `:robot: @{{ github.actor }} your code review request has been processed! See pull request #${results.data.number} for additional instructions.
-            `;
-
+            // update request issue
             github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
-              body: body
+              body: `:robot: @{{ github.actor }} your code review request has been processed! See pull request #${results.data.number} for additional instructions.
+              `
             });
 
+            // close request issue
             github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,

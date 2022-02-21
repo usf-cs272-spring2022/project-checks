@@ -58,7 +58,7 @@ jobs:
               switch (label) {
                 case REQUEST_REVIEW:
                 case GRADE_TESTS:
-                case GRADE_REVIEW':
+                case GRADE_REVIEW:
                 case GRADE_RELEASE:
                   core.setOutput('type', label);
                   return;

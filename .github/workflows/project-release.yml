@@ -284,10 +284,10 @@ jobs:
           user_cache: ${{ needs.check_release.outputs.user_cache }}
           test_cache: ${{ needs.check_release.outputs.test_cache }}
 
-      - name: "Compile source code"
+      - name: "Compile Javadoc comments"
         working-directory: ${{ env.USER_PATH }}
         run: |
-          mvn -ntp "-DcompileOptionXlint=-Xlint:none" "-DcompileOptionXdoclint=-Xdoclint:all/private" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile
+          mvn -ntp "-DcompileOptionXlint=-Xlint:none" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile
 
           if [[ $? -ne 0 ]]; then
             echo "::error ::Unable to compile the project source code without Javadoc warnings."

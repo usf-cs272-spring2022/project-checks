@@ -668,6 +668,8 @@ jobs:
           fi
 
       # TODO Change title to "Quick Review" if appropriate
+      # TODO Calculate calendly link
+      # TODO Update pull request instructions
 
       - name: "Create pull request"
         id: create_pull
@@ -682,19 +684,9 @@ jobs:
               "username": "${{ needs.check_issue.outputs.user }}",
               "project": ${{ needs.check_issue.outputs.project }},
               "release": "${{ needs.check_issue.outputs.release }}",
-              "run_id" "${{ github.run_id }}"
+              "run_id": "${{ github.run_id }}"
             }
             \`\`\`
-
-            This pull request resolves #${context.payload.issue.number}. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
-
-            :spiral_calendar: Use the following link to sign up for a code review appointment:
-
-            <#>
-
-            The **earliest** you may have a code review is PENDING. You must have a code review by PENDING to avoid late penalties.
-
-            :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request and re-request a code review.
             `;
 
             const result = await github.rest.pulls.create({
@@ -726,16 +718,33 @@ jobs:
             // get pull request results
             const results = ${{ steps.create_pull.outputs.result }};
 
-            // update pull request title
-            github.rest.pulls.update({
+            // craft link
+            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent(${{ needs.check_issue.outputs.name }})}&email=${encodeURIComponent(${{ needs.check_issue.outputs.user }})}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
+            console.log(link);
+
+            const body = `:robot: @${{ github.actor }} your code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed!
+
+            This pull request resolves #${context.payload.issue.number} -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
+
+            :spiral_calendar: Use the following link to sign up for a code review appointment:
+
+            [**Personalized Code Review Signup Link**](${link})
+
+            The **earliest** you may have a code review is PENDING. You must have a code review by PENDING to avoid late penalties.
+
+            :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request and re-request a code review.
+            `;
+
+            // add instructions
+            const pull_comment = github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: results.data.number,
-              title: 'Code Review ${{ needs.check_issue.outputs.release }}'
+              issue_number: results.data.number,
+              body: body
             });
 
             // request code review
-            github.rest.pulls.requestReviewers({
+            const request_review = github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
               repo: context.repo.repo,
               pull_number: results.data.number,
@@ -743,7 +752,7 @@ jobs:
             });
 
             // update pull request labels and milestone
-            github.rest.issues.update({
+            const update_pull = github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: results.data.number,
@@ -753,7 +762,7 @@ jobs:
             });
 
             // update request issue
-            github.rest.issues.createComment({
+            const issue_comment = github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
@@ -762,7 +771,7 @@ jobs:
             });
 
             // close request issue
-            github.rest.issues.update({
+            const issue_update = github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
@@ -771,6 +780,9 @@ jobs:
               milestone: ${{ needs.check_issue.outputs.mile }},
               state: 'closed'
             });
+
+            // output results
+            Promise.allSettled([pull_comment, request_review, update_pull, issue_comment, issue_update]).then(values => console.log(values));
 
       - name: "Check failure"
         id: check_status

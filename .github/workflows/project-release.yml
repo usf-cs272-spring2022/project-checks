@@ -454,7 +454,7 @@ jobs:
           PROJECT_VER: ${{ needs.check_release.outputs.project_ver }}
         with:
           script: |
-            let message = `:no_entry: There was an issue with the \`${ context.payload.release.tag_name }\` release version. This release may not be used to request a grade or code review.`;
+            let message = `:no_entry: There was an issue with the \`${ context.payload.release.tag_name }\` release version. It this release was created in error, please delete the release *and* tag (two separate steps). This release may not be used to request a grade or code review.`;
 
             if (process.env.VERSION_OKAY === 'true') {
               if (process.env.TESTS_OKAY === 'true') {

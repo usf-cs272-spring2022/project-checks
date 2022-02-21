@@ -674,7 +674,7 @@ jobs:
         uses: actions/github-script@v6
         with:
           script: |
-            const body = `:robot: @{{ github.actor }} [code review request](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
+            const body = `:robot: @${{ github.actor }} your code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
 
             \`\`\`json
             {
@@ -686,7 +686,9 @@ jobs:
             }
             \`\`\`
 
-            Use the following link to sign up for a code review appointment:
+            This pull request resolves #${issue: context.payload.issue.number}. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
+
+            :spiral_calendar: Use the following link to sign up for a code review appointment:
 
             <#>
 
@@ -698,11 +700,13 @@ jobs:
             const result = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue: context.payload.issue.number,
+              title: 'Code Review ${{ needs.check_issue.outputs.release }}'
               head: 'review/${{ needs.check_issue.outputs.release }}',
               base: 'main',
               body: body
             });
+
+            console.log(result);
 
             if (result.status != 201) {
               const error_message = `Unable to create pull request for release ${{ needs.check_issue.outputs.release }} (status ${result.status}).`;
@@ -753,7 +757,7 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: context.payload.issue.number,
-              body: `:robot: @{{ github.actor }} your code review request has been processed! See pull request #${results.data.number} for additional instructions.
+              body: `:robot: @${{ github.actor }} your code review request has been processed! See pull request #${results.data.number} for additional instructions.
               `
             });
 

@@ -700,7 +700,7 @@ jobs:
             const result = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'Code Review ${{ needs.check_issue.outputs.release }}'
+              title: 'Code Review ${{ needs.check_issue.outputs.release }}',
               head: 'review/${{ needs.check_issue.outputs.release }}',
               base: 'main',
               body: body

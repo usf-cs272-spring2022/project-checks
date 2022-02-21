@@ -340,7 +340,7 @@ jobs:
 
 # TODO Check reviews
 # Check the type of review request approved
-#
+# Set earliest and latest date for code review
 
   make_grade:
     name: "Grade"
@@ -719,7 +719,7 @@ jobs:
             const results = ${{ steps.create_pull.outputs.result }};
 
             // craft link
-            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}')}`;
+            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}')}&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
             console.log(link);
 
       - name: "Check failure"

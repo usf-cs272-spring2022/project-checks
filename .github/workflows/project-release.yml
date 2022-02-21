@@ -108,6 +108,10 @@ jobs:
             const project_num = parseInt(process.env.PROJECT_NUM);
             console.log(`Project: ${project_num}`);
 
+            console.log(context);
+
+            console.log(process.env);
+
             if (project_num > 1) {
               core.setFailed(`The release version ${release_tag} is for project ${project_num}. However, you are not yet eligible to start on project ${project_num} functionality.`);
             }

@@ -129,7 +129,7 @@ jobs:
               return;
             }
 
-            console.log(`Found ${pulls.length} pull requests total.`);
+            console.log(`Found ${pulls.data.length} pull requests total.`);
 
             // filter to current project
             const current = pulls.data.filter(pull => pull.milestone.title == `Project ${project_num}`);
@@ -171,10 +171,6 @@ jobs:
               return;
             }
 
-# TODO Verify project number
-# For projects 2, 3, and 4, make sure there has been at least one code review of the previous project.
-# This will be done by checking if there is an approved pull request.
-
       - name: "Verify review number"
         id: verify_review_num
         uses: actions/github-script@v6
@@ -189,7 +185,11 @@ jobs:
             const reviews_num = parseInt(process.env.REVIEWS_NUM);
             console.log(`Reviews: ${reviews_num}`);
 
+            const pulls =
+
             if (reviews_num > 0) {
+
+
               core.setFailed(`The release version ${release_tag} is for projects with ${reviews_num} code reviews. However, you have not yet had that many code reviews for project ${project_num}. Increment the minor version (the last number) in between code review appointments.`);
             }
 
@@ -428,19 +428,25 @@ jobs:
     steps:
       - uses: actions/github-script@v6
         env:
+          VERSION_OKAY: ${{ needs.check_release.result == 'success' }}
           TESTS_OKAY: ${{ needs.check_tests.result == 'success' }}
           CHECK_OKAY: ${{ needs.check_source_warnings.result == 'success' && needs.check_javadoc_warnings.result == 'success' && needs.check_code_style.result == 'success' }}
           PROJECT_VER: ${{ needs.check_release.outputs.project_ver }}
         with:
           script: |
-            let message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project 1 tests. This release may not be used to request a grade or code review.`;
+            let message = `:no_entry: There was an issue with the \`${ context.payload.release.tag_name }\` release version. This release may not be used to request a grade or code review.`;
 
-            if (process.env.TESTS_OKAY === 'true') {
-              if (process.env.CHECK_OKAY === 'true') {
-                message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests and checks. This release may be used to request a project test grade or request code review.`;
+            if (process.env.VERSION_OKAY === 'true') {
+              if (process.env.TESTS_OKAY === 'true') {
+                if (process.env.CHECK_OKAY === 'true') {
+                  message = `:100: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests and checks. This release may be used to request a project test grade or request code review.`;
+                }
+                else {
+                  message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
+                }
               }
               else {
-                message = `:bell: The release \`${ context.payload.release.tag_name }\` passed all project ${ process.env.PROJECT_VER } tests, but did not pass one or more of the other checks required for code review. This release may be used to request a project test grade only.`;
+                message = `:no_entry: The release \`${ context.payload.release.tag_name }\` did **NOT** pass all project ${ process.env.PROJECT_VER } tests. This release may not be used to request a grade or code review.`;
               }
             }
 

@@ -719,7 +719,7 @@ jobs:
             const results = ${{ steps.create_pull.outputs.result }};
 
             // craft link
-            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent(${{ needs.check_issue.outputs.name }})}&email=${encodeURIComponent(${{ needs.check_issue.outputs.user }})}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
+            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}')}`;
             console.log(link);
 
       - name: "Check failure"

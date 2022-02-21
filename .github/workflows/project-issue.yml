@@ -686,7 +686,7 @@ jobs:
             }
             \`\`\`
 
-            This pull request resolves #${issue: context.payload.issue.number}. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
+            This pull request resolves #${context.payload.issue.number}. See [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
 
             :spiral_calendar: Use the following link to sign up for a code review appointment:
 

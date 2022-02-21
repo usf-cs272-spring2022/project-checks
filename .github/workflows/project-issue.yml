@@ -595,6 +595,10 @@ jobs:
     if: ${{ !failure() && needs.check_issue.outputs.type == 'review-request' }}
     needs: [check_issue, check_actions, check_reviews]
     runs-on: ubuntu-latest
+
+    outputs:
+      error_message: ${{ steps.check_status.outputs.error_message }}
+
     steps:
       - name: "Checkout repository"
         run: |
@@ -616,15 +620,21 @@ jobs:
           git diff --shortstat origin/main refs/tags/${{ needs.check_issue.outputs.release }}
           git diff --exit-code --quiet origin/main refs/tags/${{ needs.check_issue.outputs.release }}
 
-      - name: "Checking for failure"
-        uses: actions/github-script@v6
+          if [[ $? -ne 0 ]]; then
+            ERROR_MESSAGE="The main branch has one or more commits since release ${{ needs.check_issue.outputs.release }} was created. There must be no changes between the main branch and the release for code review."
+            echo "ERROR_MESSAGE=${ERROR_MESSAGE}" >> $GITHUB_ENV
+            echo "::error ::${ERROR_MESSAGE}"
+            exit 1
+          fi
+
+      - name: "Check status"
+        id: check_status
         if: ${{ failure() }}
+        uses: actions/github-script@v6
         with:
           script: |
-            core.setFailed('The main branch has one or more commits since release ${{ needs.check_issue.outputs.release }} was created. There must be no changes between the main branch and the release for code review.');
-
-      - name: "Hello world"
-        run: echo "Hello world"
+            console.log(process.env.ERROR_MESSAGE);
+            core.setOutput('error_message', process.env.ERROR_MESSAGE);
 
 # TODO Make branch
 # Create a branch based on the release and commit a small change

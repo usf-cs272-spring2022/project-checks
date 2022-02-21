@@ -623,8 +623,7 @@ jobs:
           if [[ RUN_STATUS -ne 0 ]]; then
             ERROR_MESSAGE="The main branch has one or more commits since release ${{ needs.check_issue.outputs.release }} was created. There must be no changes between the main branch and the release for code review."
             echo "ERROR_MESSAGE<<EOF" >> $GITHUB_ENV
-            echo ":no_entry: ${ERROR_MESSAGE}" >> $GITHUB_ENV
-            echo "$FIX_ERRORS" >> $GITHUB_ENV
+            echo ":no_entry: ${ERROR_MESSAGE} $FIX_ERRORS" >> $GITHUB_ENV
             echo "$RUN_DETAIL" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
             echo "::error ::${ERROR_MESSAGE}"

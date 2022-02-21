@@ -53,6 +53,13 @@ jobs:
             exit 1
           fi
 
+      - name: "Output workflow context"
+        uses: actions/github-script@v6
+        with:
+          script: |
+            console.log(context);
+            console.log(process.env);
+
       - name: "Parse release version"
         id: parse_release
         run: |
@@ -108,12 +115,60 @@ jobs:
             const project_num = parseInt(process.env.PROJECT_NUM);
             console.log(`Project: ${project_num}`);
 
-            console.log(context);
+            // fetch pull requests
+            const pulls = await github.rest.pulls.list({
+              owner: context.payload.organization.login,
+              repo: context.payload.repository.name,
+              sort: 'created',
+              direction: 'desc',
+              per_page: 100
+            });
 
-            console.log(process.env);
+            if (pulls.status != 200) {
+              core.setFailed(`Unable to fetch pull requests (status: ${pulls.status}). Check https://www.githubstatus.com/ before re-running this action.`);
+              return;
+            }
 
-            if (project_num > 1) {
-              core.setFailed(`The release version ${release_tag} is for project ${project_num}. However, you are not yet eligible to start on project ${project_num} functionality.`);
+            console.log(`Found ${pulls.length} pull requests total.`);
+
+            // filter to current project
+            const current = pulls.data.filter(pull => pull.milestone.title == `Project ${project_num}`);
+            console.log(`Found ${current.length} pull requests for project ${project_num}.`);
+
+            // return all reviews if project 1
+            if (project_num == 1) {
+              return current;
+            }
+            else {
+              // check if eligibile to submit projects 2, 3, or 4
+              const past = pulls.data.filter(pull => pull.milestone.title == `Project ${project_num - 1}`);
+              console.log(`Found ${past.length} pull requests for project ${project_num - 1}.`);
+
+              // check if any past pull requests were approved
+              for (const pull of past) {
+                const reviews = await github.rest.pulls.listReviews({
+                  owner: context.payload.organization.login,
+                  repo: context.payload.repository.name,
+                  pull_number: pull.number
+                });
+
+                if (reviews.status != 200) {
+                  core.setFailed(`Unable to fetch reviews for pull request ${pull.number} (status: ${reviews.status}). Check https://www.githubstatus.com/ before re-running this action.`);
+                  return;
+                }
+
+                // look for an approved review from the instructor
+                const approved = reviews.data.find(review => review.user.login == "sjengle" && review.state == "APPROVED");
+
+                if (approved != undefined) {
+                  console.log(`Pull request ${pull.number} was approved by ${approved.user.login} on ${approved.submitted_at}.`);
+                  return current;
+                }
+              }
+
+              // only make it this far if did not find an approved pull request
+              core.setFailed(`The release version ${release_tag} is for project ${project_num}. However, you must have at least one code review for project ${project_num - 1} before starting on project ${project_num} tests.`);
+              return;
             }
 
 # TODO Verify project number

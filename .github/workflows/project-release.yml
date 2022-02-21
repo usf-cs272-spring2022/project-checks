@@ -185,12 +185,32 @@ jobs:
             const reviews_num = parseInt(process.env.REVIEWS_NUM);
             console.log(`Reviews: ${reviews_num}`);
 
-            const pulls =
+            const pulls = ${{ steps.verify_project_num.outputs.result }};
+            let approved = 0;
 
-            if (reviews_num > 0) {
+            for (const pull of pulls) {
+              const reviews = await github.rest.pulls.listReviews({
+                owner: context.payload.organization.login,
+                repo: context.payload.repository.name,
+                pull_number: pull.number
+              });
 
+              if (reviews.status != 200) {
+                core.setFailed(`Unable to fetch reviews for pull request ${pull.number} (status: ${reviews.status}). Check https://www.githubstatus.com/ before re-running this action.`);
+                return;
+              }
 
-              core.setFailed(`The release version ${release_tag} is for projects with ${reviews_num} code reviews. However, you have not yet had that many code reviews for project ${project_num}. Increment the minor version (the last number) in between code review appointments.`);
+              // look for an approved review from the instructor
+              const approved = reviews.data.find(review => review.user.login == "sjengle" && review.state == "APPROVED");
+
+              if (approved != undefined) {
+                console.log(`Pull request ${pull.number} was approved by ${approved.user.login} on ${approved.submitted_at}.`);
+                approved++;
+              }
+            }
+
+            if (reviews_num != approved) {
+              core.setFailed(`The release version ${release_tag} is for projects with ${reviews_num} approved code reviews. However, ${approved} code reviews were found.`);
             }
 
 # TODO Verify review number

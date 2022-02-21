@@ -710,6 +710,13 @@ jobs:
 
             return result;
 
+      - name: "Testing"
+        working-directory: "project-main"
+        env:
+          PULL_NUMBER: ${{ steps.create_pull.outputs.result.data.number }}
+        run: |
+          gh pr comment ${PULL_NUMBER} --body "Testing"
+
       - name: "Update pull request"
         uses: actions/github-script@v6
         with:
@@ -721,7 +728,7 @@ jobs:
             const results = ${{ steps.create_pull.outputs.result }};
 
             // craft link
-            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}')}&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
+            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}'.trim())}&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}'.trim())}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
             console.log(link);
 
             const body = `:spiral_calendar: @${{ github.actor }} use [**this personalized appointment signup link**](${link}) to sign up for a code review.

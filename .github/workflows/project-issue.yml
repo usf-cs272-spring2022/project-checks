@@ -605,6 +605,11 @@ jobs:
         run: |
           ls -ACGR src/main/java
 
+      - name: "Fetching commit history and tags"
+        working-directory: "project-main"
+        run: |
+          git fetch --unshallow --tags
+
       - name: "Comparing release to main branch"
         working-directory: "project-main"
         run: |

@@ -294,7 +294,7 @@ jobs:
         working-directory: ${{ env.USER_PATH }}
         run: |
           RUN_STATUS=0
-          mvn -ntp "-DcompileOptionXlint=-Xlint:none" -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile || RUN_STATUS=$?
+          mvn -ntp -DcompileOptionXlint=-Xlint:none -DcompileOptionXdoclint=-Xdoclint:all/private -Dmaven.compiler.showWarnings=true -DcompileOptionFail=true clean compile || RUN_STATUS=$?
 
           if [[ RUN_STATUS -ne 0 ]]; then
             echo "::error ::Unable to compile the project source code without Javadoc warnings."

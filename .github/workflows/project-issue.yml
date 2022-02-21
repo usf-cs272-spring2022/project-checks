@@ -617,7 +617,7 @@ jobs:
       - name: "Comparing release to main branch"
         working-directory: "project-main"
         run: |
-          git diff --shortstat origin/main refs/tags/${{ needs.check_issue.outputs.release }}
+          git diff --shortstat origin/main refs/tags/${{ needs.check_issue.outputs.release }} || true
 
           git diff --exit-code --quiet origin/main refs/tags/${{ needs.check_issue.outputs.release }}
 

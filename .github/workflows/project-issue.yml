@@ -618,12 +618,13 @@ jobs:
         working-directory: "project-main"
         run: |
           git diff --shortstat origin/main refs/tags/${{ needs.check_issue.outputs.release }}
+
           git diff --exit-code --quiet origin/main refs/tags/${{ needs.check_issue.outputs.release }}
 
           if [[ $? -ne 0 ]]; then
-            ERROR_MESSAGE="The main branch has one or more commits since release ${{ needs.check_issue.outputs.release }} was created. There must be no changes between the main branch and the release for code review."
-            echo "ERROR_MESSAGE=${ERROR_MESSAGE}" >> $GITHUB_ENV
-            echo "::error ::${ERROR_MESSAGE}"
+            ERROR_MESSAGE="Hello"
+            echo "ERROR_MESSAGE=World" >> $GITHUB_ENV
+            echo "::error ::Hello world"
             exit 1
           fi
 

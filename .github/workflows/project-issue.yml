@@ -630,6 +630,43 @@ jobs:
             exit 1
           fi
 
+      - name: "Creating review branch"
+        working-directory: "project-main"
+        run: |
+          RUN_STATUS=0
+          git checkout -b review/${{ needs.check_issue.outputs.release }} || RUN_STATUS=$?
+
+          if [[ RUN_STATUS -ne 0 ]]; then
+            ERROR_MESSAGE="Unable to create review branch for release ${{ needs.check_issue.outputs.release }}. If this branch already exists, please delete it before requesting code review or request code review of a different release."
+            echo "ERROR_MESSAGE<<EOF" >> $GITHUB_ENV
+            echo ":no_entry: ${ERROR_MESSAGE} $FIX_ERRORS" >> $GITHUB_ENV
+            echo "$RUN_DETAIL" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "::error ::${ERROR_MESSAGE}"
+            exit 1
+          fi
+
+      - name: "Pushing review branch"
+        working-directory: "project-main"
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+
+          git commit --allow-empty -m "Creating ${{ needs.check_issue.outputs.release }} review branch"
+
+          RUN_STATUS=0
+          git push -u origin review/${{ needs.check_issue.outputs.release }} || RUN_STATUS=$?
+
+          if [[ RUN_STATUS -ne 0 ]]; then
+            ERROR_MESSAGE="Unable to push review branch for release ${{ needs.check_issue.outputs.release }}. If this branch already exists, please delete it before requesting code review or request code review of a different release."
+            echo "ERROR_MESSAGE<<EOF" >> $GITHUB_ENV
+            echo ":no_entry: ${ERROR_MESSAGE} $FIX_ERRORS" >> $GITHUB_ENV
+            echo "$RUN_DETAIL" >> $GITHUB_ENV
+            echo "EOF" >> $GITHUB_ENV
+            echo "::error ::${ERROR_MESSAGE}"
+            exit 1
+          fi
+
       - name: "Check status"
         id: check_status
         if: ${{ failure() }}

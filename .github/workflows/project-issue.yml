@@ -383,8 +383,8 @@ jobs:
               repo: context.repo.repo,
               state: 'all',
               assignee: 'sjengle',
-              labels: `project${ project }`,
-              milestone: milestone,
+              //labels: `project${ project }`,
+              //milestone: milestone,
               sort: 'created',
               direction: 'desc',
               per_page: 100

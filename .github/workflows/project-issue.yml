@@ -368,9 +368,9 @@ jobs:
         uses: 'actions/github-script@v6'
 
         env:
-          PROJECT_NUM: '${{ steps.check_title.outputs.project }}'
-          REVIEWS_NUM: '${{ steps.check_title.outputs.reviews }}'
-          MILE_NUM: '${{ steps.check_title.outputs.mile }}'
+          PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
+          REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
+          MILE_NUM: '${{ needs.check_issue.outputs.mile }}'
 
         with:
           script: |

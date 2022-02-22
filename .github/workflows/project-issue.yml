@@ -488,9 +488,9 @@ jobs:
               const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
 
               core.exportVariable('next_type', 'Code');
-              core.exportVariable('next_date', today.toLocaleString(DateTime.DATETIME_FULL));
-              core.exportVariable('next_late', late.toLocaleString(DateTime.DATETIME_FULL));
-              core.exportVariable('next_link', `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-mm') }&date=${ today.toFormat('yyyy-mm-dd') }`);
+              core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));
+              core.exportVariable('next_late', late.toLocaleString(DateTime.DATE_HUGE));
+              core.exportVariable('next_link', `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`);
 
               core.exportVariable('last_pull', 'N/A');
               core.exportVariable('last_type', 'N/A');
@@ -528,7 +528,7 @@ jobs:
               core.setOutput(output, last_output[output]);
             }
 
-            console.log(next_output);
+            console.log(last_output);
 
       - name: 'Check status'
         id: 'check_status'

@@ -974,11 +974,85 @@ jobs:
             core.exportVariable('ERROR_MESSAGE', `:no_entry: Something went wrong updating the pull request. Reach out to the instructor on Piazza for next steps. ${ process.env.RUN_DETAIL }`);
 
             // get pull request results
-            const results = { html_url: 'hello' }; // ${{ steps.create_pull.outputs.result }};
+            const results = { html_url: 'hello' }; // {{ steps.create_pull.outputs.result }};
 
             // craft link
             const link = `${ process.env.REVIEW_LINK }&name=${ encodeURIComponent('${{ needs.check_issue.outputs.name }}') }&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${ encodeURIComponent(results.html_url) }`;
             console.log(link);
+
+            const body = `:robot: Congratulations @${{ github.actor }}, your code review request has been approved. See below for how to proceed.
+
+            ## :memo: Instructions
+
+            Use [**this personalized appointment signup link**](${ link }) to sign up for a code review.
+
+            The earliest you are eligible to have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by **${ process.env.REVIEW_LATE }** to avoid late penalties. You may only have one upcoming appointment at a time!
+
+            ## :warning: Warnings
+
+            Be careful to avoid the following issues before your appointment:
+
+              - Do not make modifications to the code in your `main` branch before your appointment. If your code is not ready for code review, close this request, cancel your appointment, and re-request a code review when your code is ready.
+
+              - Do not merge this pull request until it is approved by the instructor during your code review appointment. If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
+
+              - Do not abuse the appointment system. This includes signing up for more than one appointment at a time, signing up before you are eligible for an appointment, arriving more than 5 minutes late or missing an appointment, and signing up for an appointment before you are approved.
+
+            Repeat issues with the code review process may result in a point deduction to your code review grades.
+            `;
+
+            console.log(body);
+
+            return; // TODO
+
+            // add instructions
+            const pull_comment = github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: results.number,
+              body: body
+            });
+
+            // request code review
+            const request_review = github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: results.number,
+              reviewers: ['sjengle']
+            });
+
+            // update pull request labels and milestone
+            const update_pull = github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: results.number,
+              assignees: ['${{ github.actor }}'],
+              labels: ['project${{ needs.check_issue.outputs.project }}'],
+              milestone: ${{ needs.check_issue.outputs.mile }}
+            });
+
+            // update request issue
+            const issue_comment = github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: `:robot: @${{ github.actor }} your code review request has been processed! See pull request #${results.data.number} for additional instructions.
+              `
+            });
+
+            // close request issue
+            const issue_update = github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              assignees: ['${{ github.actor }}'],
+              labels: ['${{ needs.check_issue.outputs.type }}', 'project${{ needs.check_issue.outputs.project }}'],
+              milestone: ${{ needs.check_issue.outputs.mile }},
+              state: 'closed'
+            });
+
+            // output results
+            Promise.allSettled([pull_comment, request_review, update_pull, issue_comment, issue_update]).then(values => console.log(values));
 
       - name: 'Check failure'
         id: 'check_status'

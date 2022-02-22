@@ -377,7 +377,7 @@ jobs:
             const reviews = parseInt(process.env.REVIEWS_NUM);
             const milestone = parseInt(process.env.MILE_NUM);
 
-            const issues = github.rest.issues.listForRepo({
+            const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'closed',

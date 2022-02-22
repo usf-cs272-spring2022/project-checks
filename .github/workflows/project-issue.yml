@@ -981,24 +981,6 @@ jobs:
             console.log(link);
 
             const body = `:robot: Congratulations @${{ github.actor }}, your code review request has been approved. See below for how to proceed.
-
-            ## :memo: Instructions
-
-            Use [**this personalized appointment signup link**](${ link }) to sign up for a code review.
-
-            The earliest you are eligible to have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by **${ process.env.REVIEW_LATE }** to avoid late penalties. You may only have one upcoming appointment at a time!
-
-            ## :warning: Warnings
-
-            Be careful to avoid the following issues before your appointment:
-
-              - Do not make modifications to the code in your `main` branch before your appointment. If your code is not ready for code review, close this request, cancel your appointment, and re-request a code review when your code is ready.
-
-              - Do not merge this pull request until it is approved by the instructor during your code review appointment. If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
-
-              - Do not abuse the appointment system. This includes signing up for more than one appointment at a time, signing up before you are eligible for an appointment, arriving more than 5 minutes late or missing an appointment, and signing up for an appointment before you are approved.
-
-            Repeat issues with the code review process may result in a point deduction to your code review grades.
             `;
 
             console.log(body);

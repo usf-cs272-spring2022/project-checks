@@ -362,6 +362,52 @@ jobs:
       NEXT_MAX: 10 # Maximum number of days before next review (see: late penalty)
 
     steps:
+      - name: 'Check grade issues'
+        id: 'check_grades'
+        uses: 'actions/github-script@v6'
+
+        env:
+          PROJECT_NUM: '${{ steps.check_title.outputs.project }}'
+          REVIEWS_NUM: '${{ steps.check_title.outputs.reviews }}'
+          MILE_NUM: '${{ steps.check_title.outputs.mile }}'
+
+        with:
+          script: |
+            const project = parseInt(process.env.PROJECT_NUM);
+            const reviews = parseInt(process.env.REVIEWS_NUM);
+            const milestone = parseInt(process.env.MILE_NUM);
+
+            const issues = github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'closed',
+              assignee: 'sjengle',
+              labels: `project${ project }`
+              milestone: milestone,
+              sort: 'created',
+              direction: 'desc',
+              per_page: 100
+            });
+
+            core.startGroup('Found issues...');
+            console.log(issues);
+            core.endGroup();
+
+            if (issues.status != 200) {
+              const error_message = `Unable to fetch closed issues for project ${ project } with the correct assignees, milestone, and labels.`;
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(error_message);
+              return;
+            }
+
+            // if requesting code review...
+            // if 0 check if test grade
+            // if 1 check if review 1 grade
+            // if 2 check if review 2 grade
+
+            // if requesting final release...
+            // check if review 2 grade
+
       - name: 'Pending'
         id: 'pending'
         uses: 'actions/github-script@v6'

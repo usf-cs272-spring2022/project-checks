@@ -499,7 +499,7 @@ jobs:
               console.log(`Deadline: ${deadline}`);
 
               // something is converting the dates to non-ISO format
-              const converted = DateTime.fromFormat("MM/dd/yyyy HH:mm:ss");
+              const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
 
               core.exportVariable('next_type', 'Code');
               core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));

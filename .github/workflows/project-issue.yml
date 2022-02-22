@@ -418,7 +418,7 @@ jobs:
             if (process.env.TYPE == process.env.REQUEST_REVIEW && reviews == 0) {
               const found = issues.data.find(issue => issue.title.startsWith(`Request Test Grade v${ project }`));
 
-              if (found == undefined || true) { // TODO Testing
+              if (found == undefined) {
                 const error_message = `You must successfully request a project ${ project } test grade before requesting a code review.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(error_message);
@@ -428,6 +428,9 @@ jobs:
               // only get here if found an issue
               console.log(`Found issue #${ found.number }: ${ found.title }`);
             }
+
+            const filtered = issues.data.filter(issue => issue.title.startsWith(`Request Code Review v${ project }`));
+            console.log(`Found code review requests: ${ filtered.map(issue => issue.title) }`);
 
       - name: 'Check pull requests'
         id: 'pending'

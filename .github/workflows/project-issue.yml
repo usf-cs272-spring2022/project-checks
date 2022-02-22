@@ -357,11 +357,15 @@ jobs:
     outputs:
       error_message:  '${{ steps.check_status.outputs.error_message }}'
 
-      next_review_type: '${{ steps.pending.outputs.next_review_type }}' # Code, Quick, None
-      next_review_date: '${{ steps.pending.outputs.next_review_date }}' # Date of Next Review, None
+      next_type: '${{ steps.pending.outputs.next_type }}' # code, quick
+      next_date: '${{ steps.pending.outputs.next_date }}' # date of next review (min)
+      next_late: '${{ steps.pending.outputs.next_late }}' # date of next review (max)
+      next_link: '${{ steps.pending.outputs.next_link }}' # calendly url parameters
 
-      last_review_pass: '${{ steps.pending.outputs.last_review_pass }}' # Pass, Resubmit
-      last_review_date: '${{ steps.pending.outputs.last_review_date }}' # Date of Last Review, None
+      last_pull: '${{ steps.pending.outputs.last_pull }}' # pull request number, N/A
+      last_type: '${{ steps.pending.outputs.last_type }}' # code, quick, N/A
+      last_date: '${{ steps.pending.outputs.last_date }}' # date of last review, N/A
+      last_pass: '${{ steps.pending.outputs.last_pass }}' # true, false
 
     env:
       NEXT_MIN: 5  # Minimum number of days before next review (see: eligibility)
@@ -426,13 +430,12 @@ jobs:
 
               // only get here if found an issue
               console.log(`Found issue #${ found.number }: ${ found.title }`);
-              // return issues; TODO TESTING
             }
 
             const filtered = issues.data.filter(issue => issue.title.startsWith(`Request Code Review v${ project }`));
             console.log(`Found code review requests: ${ filtered.length == 0 ? '(none)' : filtered.map(issue => issue.title) }`);
 
-            if (process.env.TYPE == process.env.GRADE_RELEASE || reviews > 1 || true) { // TODO Testing
+            if (process.env.TYPE == process.env.GRADE_RELEASE || reviews > 1) {
               if (filtered.length < 2) {
                 const error_message = `You must successfully request your second project ${ project } code review grade before making another request.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
@@ -440,21 +443,92 @@ jobs:
                 return;
               }
             }
+            else if (reviews == 1 && filtered.length < 1) {
+              const error_message = `You must successfully request your first project ${ project } code review grade before making another request.`;
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(error_message);
+              return;
+            }
+            else {
+              core.setFailed(`Unexpected request "${ process.env.TYPE }" for release ${ process.env.RELEASE }.`);
+              return;
+            }
+
+            // if made it this far, everythign checks out
+            return issues.data;
+
+      - name: 'Setup node'
+        uses: 'actions/setup-node@v2'
+        with:
+          node-version: '16'
+          cache: 'npm'
+
+      - name: 'Install luxon'
+        run: npm install luxon
 
       - name: 'Check pull requests'
         id: 'pending'
         uses: 'actions/github-script@v6'
+
+        env:
+          PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
+          REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
+
         with:
           script: |
-            core.setOutput('next_review_type', 'Code');
-            core.setOutput('next_review_date', 'Pending');
-            core.setOutput('next_review_date', 'Pending');
+            const { DateTime } = require('luxon');
+            const zone = 'America/Los_Angeles';
 
-            core.setOutput('last_review_pass', 'Resubmit');
-            core.setOutput('last_review_date', 'Pending');
-            core.setOutput('last_review_text', 'Pending');
+            const project = parseInt(process.env.PROJECT_NUM);
+            const reviews = parseInt(process.env.REVIEWS_NUM);
 
-            console.log("hello world");
+            // if this is first code review
+            if (reviews == 0) {
+              const today = DateTime.now().setZone(zone);
+              const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
+
+              core.exportVariable('next_type', 'Code');
+              core.exportVariable('next_date', today.toLocaleString(DateTime.DATETIME_FULL));
+              core.exportVariable('next_late', late.toLocaleString(DateTime.DATETIME_FULL));
+              core.exportVariable('next_link', `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-mm') }&date=${ today.toFormat('yyyy-mm-dd') }`);
+
+              core.exportVariable('last_pull', 'N/A');
+              core.exportVariable('last_type', 'N/A');
+              core.exportVariable('last_date', 'N/A');
+              core.exportVariable('last_pass', 'false');
+            }
+            else {
+              // otherwise lookup past code review information
+              const issues = ${{ toJSON( steps.check_eligible.outputs.result ) }};
+              const pulls = issues.filter(issue => issue.pull_request != undefined);
+            }
+
+            // set calculated values
+            const next_output = {
+              'next_type': process.env.next_type,
+              'next_date': process.env.next_date,
+              'next_late': process.env.next_late,
+              'next_link': process.env.next_link
+            };
+
+            for (const output in next_output) {
+              core.setOutput(output, next_output[output]);
+            }
+
+            console.log(next_output);
+
+            const last_output = {
+              'last_pull': process.env.last_pull,
+              'last_type': process.env.last_type,
+              'last_date': process.env.last_date,
+              'last_pass': process.env.last_pass
+            }
+
+            for (const output in last_output) {
+              core.setOutput(output, last_output[output]);
+            }
+
+            console.log(next_output);
 
       - name: 'Check status'
         id: 'check_status'
@@ -625,6 +699,7 @@ jobs:
         uses: 'actions/setup-node@v2'
         with:
           node-version: '16'
+          cache: 'npm'
 
       - name: 'Install luxon'
         run: npm install luxon
@@ -810,11 +885,25 @@ jobs:
 
             \`\`\`json
             {
-              "name": "${{ needs.check_issue.outputs.name }}",
+              "name":     "${{ needs.check_issue.outputs.name }}",
               "username": "${{ needs.check_issue.outputs.user }}",
-              "project": ${{ needs.check_issue.outputs.project }},
-              "release": "${{ needs.check_issue.outputs.release }}",
-              "run_id": "${{ github.run_id }}"
+
+              "release":  "${{ needs.check_issue.outputs.release }}",
+              "project":  "${{ needs.check_issue.outputs.project }}",
+              "reviews":  "${{ needs.check_issue.outputs.reviews }}",
+
+              "last_review": {
+                "pull": "#${{ needs.check_reviews.outputs.last_pull }}",
+                "type": "${{ needs.check_reviews.outputs.last_type }}",
+                "date": "${{ needs.check_reviews.outputs.last_date }}",
+                "pass": "${{ needs.check_reviews.outputs.last_pass }}"
+              },
+
+              "this_review": {
+                "type": "${{ needs.check_reviews.outputs.next_type }}",
+                "date": "${{ needs.check_reviews.outputs.next_date }}",
+                "late": "${{ needs.check_reviews.outputs.next_late }}"
+              }
             }
             \`\`\`
 
@@ -843,6 +932,13 @@ jobs:
       - name: 'Update pull request'
         uses: 'actions/github-script@v6'
         if: ${{ false }} # TODO temporarily disable
+
+        env:
+          REVIEW_TYPE: '${{ needs.check_reviews.output.next_type }}'
+          REVIEW_DATE: '${{ needs.check_reviews.output.next_date }}'
+          REVIEW_LATE: '${{ needs.check_reviews.output.next_late }}'
+          REVIEW_LINK: '${{ needs.check_reviews.output.next_link }}'
+
         with:
           script: |
             // only used if something here fails
@@ -852,12 +948,12 @@ jobs:
             const results = ${{ steps.create_pull.outputs.result }};
 
             // craft link
-            const link = `https://calendly.com/sjengle/code-review?name=${encodeURIComponent('${{ needs.check_issue.outputs.name }}')}&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${encodeURIComponent(results.data.html_url)}`;
+            const link = `${ process.env.REVIEW_LINK }&name=${ encodeURIComponent('${{ needs.check_issue.outputs.name }}') }&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${ encodeURIComponent(results.data.html_url) }`;
             console.log(link);
 
-            const body = `:spiral_calendar: @${{ github.actor }} use [**this personalized appointment signup link**](${link}) to sign up for a code review.
+            const body = `:spiral_calendar: @${{ github.actor }} use [**this personalized appointment signup link**](${link}) to sign up for a ${ process.env.REVIEW_TYPE.toLowerCase() } review.
 
-            The **earliest** you may have a code review is PENDING. You must have a code review by PENDING to avoid late penalties. You may only have one upcoming appointment at a time!
+            The **earliest** you may have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by PENDING to avoid late penalties. You may only have one upcoming appointment at a time!
 
             :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
             `;

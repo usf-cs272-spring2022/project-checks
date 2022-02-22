@@ -382,7 +382,7 @@ jobs:
               repo: context.repo.repo,
               state: 'closed',
               assignee: 'sjengle',
-              labels: `project${ project }`
+              labels: `project${ project }`,
               milestone: milestone,
               sort: 'created',
               direction: 'desc',

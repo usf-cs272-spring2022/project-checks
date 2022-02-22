@@ -877,9 +877,12 @@ jobs:
       - name: 'Create pull request'
         id: 'create_pull'
         uses: 'actions/github-script@v6'
-        if: ${{ false }} # TODO temporarily disable
+        # if: ${{ false }} # TODO temporarily disable
         with:
           script: |
+            const last_type = '${{ needs.check_reviews.outputs.last_type }}';
+            const next_type = '${{ needs.check_reviews.outputs.next_type }}';
+
             const body = `:robot: The code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
 
             \`\`\`json
@@ -893,13 +896,13 @@ jobs:
 
               "last_review": {
                 "pull": "#${{ needs.check_reviews.outputs.last_pull }}",
-                "type": "${{ needs.check_reviews.outputs.last_type }}",
+                "type": "${ last_type.toLowerCase() }",
                 "date": "${{ needs.check_reviews.outputs.last_date }}",
                 "pass": "${{ needs.check_reviews.outputs.last_pass }}"
               },
 
               "this_review": {
-                "type": "${{ needs.check_reviews.outputs.next_type }}",
+                "type": "${ next_type.toLowerCase() }",
                 "date": "${{ needs.check_reviews.outputs.next_date }}",
                 "late": "${{ needs.check_reviews.outputs.next_late }}"
               }
@@ -909,10 +912,14 @@ jobs:
             This pull request closes #${ context.payload.issue.number } -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
             `;
 
+            console.log(body);
+
+            return; // TODO
+
             const result = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'Code Review ${{ needs.check_issue.outputs.release }}',
+              title: '${{ needs.check_reviews.outputs.next_type }} Review ${{ needs.check_issue.outputs.release }}',
               head: 'review/${{ needs.check_issue.outputs.release }}',
               base: 'main',
               body: body

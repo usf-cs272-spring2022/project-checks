@@ -17,6 +17,7 @@ env:
   REQUEST_REVIEW: 'review-request' # label used to request code review
 
   # default messages
+  # newlines require " " style double quotes
   RUN_DETAIL: "\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
   FIX_ERRORS: "After fixing this request, remove the `error` label and re-open this issue."
 
@@ -207,26 +208,26 @@ jobs:
             github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'closed', assignees: [context.actor], labels: labels});
 
   check_actions:
-    name: "Actions"
-    runs-on: ubuntu-latest
-    needs: [check_issue]
+    name: 'Actions'
+    runs-on: 'ubuntu-latest'
+    needs: ['check_issue']
     # top-level environment variables not yet supported
     # https://github.community/t/use-env-variable-for-jobs-id-runs-on-and-jobs-id-services-image/17281/3
     # https://docs.github.com/en/actions/learn-github-actions/contexts#env-context
     if: ${{ needs.check_issue.outputs.type == 'grade-tests' || needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'review-request' }}
 
     outputs:
-      error_message: ${{ steps.check_status.outputs.error_message }}
-      submitted_id: ${{ steps.find_passing.outputs.submitted_id }}
-      submitted_date: ${{ steps.find_passing.outputs.submitted_date }}
-      submitted_link: ${{ steps.find_passing.outputs.submitted_link }}
+      error_message:  '${{ steps.check_status.outputs.error_message }}'
+      submitted_id:   '${{ steps.find_passing.outputs.submitted_id }}'
+      submitted_date: '${{ steps.find_passing.outputs.submitted_date }}'
+      submitted_link: '${{ steps.find_passing.outputs.submitted_link }}'
 
     steps:
-      - name: "Find action runs"
-        uses: actions/github-script@v6
-        id: find_runs
+      - name: 'Find action runs'
+        uses: 'actions/github-script@v6'
+        id: 'find_runs'
         env:
-          RELEASE: ${{ needs.check_issue.outputs.release }}
+          RELEASE: '${{ needs.check_issue.outputs.release }}'
         with:
           script: |
             const runs = await github.rest.actions.listWorkflowRuns({
@@ -235,6 +236,10 @@ jobs:
               workflow_id: 'project-release.yml',
               per_page: 100
             });
+
+            core.startGroup('Found runs...');
+            console.log(runs);
+            core.endGroup();
 
             if (runs.status != 200) {
               const error_message = `Unable to fetch runs for "Check project release" action (status ${runs.status}).`;
@@ -247,6 +252,10 @@ jobs:
 
               const filtered = runs.data.workflow_runs.filter(run => run.status === 'completed' && run.head_branch === release);
 
+              core.startGroup('Filtered runs...');
+              console.log(filtered);
+              core.endGroup();
+
               if (filtered.length < 1) {
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: Unable to find any completed workflow runs for release: ${release}\n\nMake sure to create a release and wait for its action run to complete. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(`Unable to find any completed workflow runs for release: ${release}`);
@@ -257,12 +266,12 @@ jobs:
               }
             }
 
-      - name: "Find passing runs"
-        uses: actions/github-script@v6
-        id: find_passing
+      - name: 'Find passing runs'
+        uses: 'actions/github-script@v6'
+        id: 'find_passing'
         env:
-          RELEASE: ${{ needs.check_issue.outputs.release }}
-          TYPE: ${{ needs.check_issue.outputs.type }}
+          RELEASE: '${{ needs.check_issue.outputs.release }}'
+          TYPE: '${{ needs.check_issue.outputs.type }}'
         with:
           script: |
             const release = process.env.RELEASE;
@@ -277,6 +286,7 @@ jobs:
             if (success != undefined) {
               console.log(`Found successful run:`);
               console.log(success);
+
               core.setOutput('submitted_id', success.id);
               core.setOutput('submitted_date', success.head_commit.timestamp);
               console.log(`ID: ${success.id}, Submitted: ${success.head_commit.timestamp}`);
@@ -291,6 +301,10 @@ jobs:
                   filter: 'latest',
                   per_page: 100
                 });
+
+                core.startGroup('Workflow results...');
+                console.log(results);
+                core.endGroup();
 
                 if (results.status != 200) {
                   const error_message = `Unable to fetch jobs for action run ${run.id}.`;
@@ -321,47 +335,66 @@ jobs:
               core.setFailed(`No runs found that passed all tests and checks for release ${release}.`);
             }
 
-      - name: "Check status"
-        id: check_status
+      - name: 'Check status'
+        id: 'check_status'
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             console.log(process.env.ERROR_MESSAGE);
             core.setOutput('error_message', process.env.ERROR_MESSAGE);
 
   check_reviews:
-    name: "Reviews"
-    runs-on: ubuntu-latest
+    name: 'Reviews'
+    runs-on: 'ubuntu-latest'
     if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'review-request' }}
-    needs: [check_issue]
+    needs: ['check_issue']
+
+    outputs:
+      next_review_type: '${{ steps.pending.outputs.next_review_type }}' # Code, Quick, None
+      next_review_date: '${{ steps.pending.outputs.next_review_date }}' # Date of Next Review, None
+
+      last_review_pass: '${{ steps.pending.outputs.last_review_pass }}' # Pass, Resubmit
+      last_review_date: '${{ steps.pending.outputs.last_review_date }}' # Date of Last Review, None
+
+    env:
+      NEXT_MIN: 5  # Minimum number of days before next review (see: eligibility)
+      NEXT_MAX: 10 # Maximum number of days before next review (see: late penalty)
+
     steps:
-      - uses: actions/github-script@v6
+      - name: 'Pending'
+        id: 'pending'
+        uses: 'actions/github-script@v6'
         with:
           script: |
-            // know passes tests know valid request
-            // check last code review date (if review > 0)
-            // calculate deadline or last_review_date as 10 plus that date
-            // calculate submitted date as date of code review
+            core.setOutput('next_review_type', 'Code');
+            core.setOutput('next_review_date', 'Pending');
+            core.setOutput('next_review_date', 'Pending');
+
+            core.setOutput('last_review_pass', 'Resubmit');
+            core.setOutput('last_review_date', 'Pending');
+            core.setOutput('last_review_text', 'Pending');
+
             console.log("hello world");
 
 # TODO Check reviews
 # Check the type of review request approved
 # Set earliest and latest date for code review
+# Make sure already have test grade for project
 
   make_grade:
-    name: "Grade"
-    runs-on: ubuntu-latest
+    name: 'Grade'
+    runs-on: 'ubuntu-latest'
     if: ${{ !failure() && (needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'grade-tests' || needs.check_issue.outputs.type == 'grade-review') }}
-    needs: [check_issue, check_actions, check_reviews]
+    needs: ['check_issue', 'check_actions', 'check_reviews']
 
     outputs:
-      error_message: ${{ steps.check_status.outputs.error_message }}
+      error_message: '${{ steps.check_status.outputs.error_message }}'
 
     steps:
-      - name: "Load configuration"
-        id: load_config
-        uses: actions/github-script@v6
+      - name: 'Load configuration'
+        id: 'load_config'
+        uses: 'actions/github-script@v6'
         with:
           script: |
               // get environment variables
@@ -420,9 +453,9 @@ jobs:
               console.log(config);
               return config;
 
-      - name: "Lookup deadline"
-        id: find_deadline
-        uses: actions/github-script@v6
+      - name: 'Lookup deadline'
+        id: 'find_deadline'
+        uses: 'actions/github-script@v6'
         with:
           script: |
               const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
@@ -437,11 +470,11 @@ jobs:
               };
 
               // set parameters based on grade type
-              results.possible = parseInt(config.possible[results.type]);
-              results.deduction = parseInt( config.deduction[results.type]);
-              results.duration = parseInt(config.duration[results.type]);
-              results.maximum = parseInt(config.maximum[results.type]);
-              results.assignment = `Project ${results.project} ${config.assignment[results.type]}`;
+              results.possible   = parseInt(config.possible[results.type]);
+              results.deduction  = parseInt(config.deduction[results.type]);
+              results.duration   = parseInt(config.duration[results.type]);
+              results.maximum    = parseInt(config.maximum[results.type]);
+              results.assignment = `Project ${ results.project } ${ config.assignment[results.type] }`;
 
               // set submitted
               switch (results.type) {
@@ -456,19 +489,19 @@ jobs:
                 // for code review, based on pull request approval
                 case GRADE_REVIEW:
                   results.submitted_type = 'pull request';
-                  results.assignment = `${results.assignment} ${results.reviews + 1}`;
+                  results.assignment = `${ results.assignment } ${ results.reviews + 1 }`;
                   core.setFailed('Not yet implemented.');
                   break;
 
                 default:
-                  core.setFailed(`Unexpected type: ${config.type}`);
+                  core.setFailed(`Unexpected type: ${ config.type }`);
               }
 
               // set deadline
               switch (results.type) {
                 // based on test deadline
                 case GRADE_TESTS:
-                  results.deadline = config.deadline[GRADE_TESTS][`project${results.project}`];
+                  results.deadline = config.deadline[GRADE_TESTS][`project${ results.project }`];
                   break;
 
                 // based on review deadline -or- last code review
@@ -476,11 +509,11 @@ jobs:
                 case GRADE_RELEASE:
                   // not used for project 4
                   if (parseInt(results.project) > 3) {
-                    core.exportVariable('ERROR_MESSAGE', `:no_entry: This grade request is not supported for project ${results.project}. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-                    core.setFailed(`This grade request is not supported for project ${results.project}.`);
+                    core.exportVariable('ERROR_MESSAGE', `:no_entry: This grade request is not supported for project ${ results.project }. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                    core.setFailed(`This grade request is not supported for project ${ results.project }.`);
                   }
 
-                  results.deadline = config.deadline[GRADE_REVIEW][`project${results.project}`];
+                  results.deadline = config.deadline[GRADE_REVIEW][`project${ results.project }`];
 
                   if (results.reviews > 0) {
                     // due +duration from last review
@@ -490,7 +523,7 @@ jobs:
                   break;
 
                 default:
-                  core.setFailed(`Unexpected type: ${results.type}`);
+                  core.setFailed(`Unexpected type: ${ results.type }`);
               }
 
               console.log(results);
@@ -500,17 +533,17 @@ jobs:
       # For second code review or grading the release, the deadline should be the
       # most recent code review plus 10 days.
 
-      - name: "Setup node"
-        uses: actions/setup-node@v2
+      - name: 'Setup node'
+        uses: 'actions/setup-node@v2'
         with:
           node-version: '16'
 
-      - name: "Install luxon"
+      - name: 'Install luxon'
         run: npm install luxon
 
-      - name: "Calculate grade"
-        id: calc_grade
-        uses: actions/github-script@v6
+      - name: 'Calculate grade'
+        id: 'calc_grade'
+        uses: 'actions/github-script@v6'
         with:
           script: |
             const { DateTime } = require('luxon');
@@ -519,41 +552,41 @@ jobs:
             const results = ${{ steps.find_deadline.outputs.result }};
 
             // convert date strings to date objects
-            results.submitted_date = DateTime.fromISO(results.submitted_date, {zone: zone});
-            results.deadline = DateTime.fromISO(results.deadline, {zone: zone});
+            results.submitted_date = DateTime.fromISO(results.submitted_date, { zone: zone });
+            results.deadline = DateTime.fromISO(results.deadline, { zone: zone });
 
             // save text representations
             results.submitted_text = results.submitted_date.toLocaleString(DateTime.DATETIME_FULL);
             results.deadline_text = results.deadline.toLocaleString(DateTime.DATETIME_FULL);
 
-            console.log(`Submitted: ${results.submitted_date.toString()}, Deadline: ${results.deadline.toString()}`);
+            console.log(`Submitted: ${ results.submitted_text }, Deadline: ${ results.deadline_text }`);
 
             results.earned = parseInt(results.possible);
             results.late_days = 0;
             results.late_deduction = 0;
 
             if (results.submitted_date <= results.deadline) {
-              core.notice(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, before the ${results.deadline_text} deadline.`);
+              core.notice(`The ${ results.assignment } assignment was submitted on ${ results.submitted_text }, before the ${ results.deadline_text } deadline.`);
             }
             else {
               const late_diff = results.submitted_date.diff(results.deadline, 'days');
               results.late_days = Math.ceil(late_diff.toObject().days);
-              console.log(`The ${results.assignment} assignment was submitted on ${results.submitted_text}, which is ${results.late_days} late.`);
+              console.log(`The ${ results.assignment } assignment was submitted on ${ results.submitted_text }, which is ${ results.late_days } late.`);
 
               const late_mult = Math.ceil(results.late_days / results.duration);
               const late_loss = late_mult * results.deduction
               results.late_deduction = Math.min(late_loss, results.maximum);
-              console.log(`The calculated late penalty is ${late_loss}, or ${results.late_deduction} after considering a maximum ${results.maximum} penalty.`);
+              console.log(`The calculated late penalty is ${ late_loss }, or ${ results.late_deduction } after considering a maximum ${ results.maximum } penalty.`);
 
-              results.earned = results.earned -results.late_deduction;
+              results.earned = results.earned - results.late_deduction;
             }
 
             return results;
 
-      - name: "Check success"
-        id: check_success
+      - name: 'Check success'
+        id: 'check_success'
         if: ${{ success() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             const results = ${{ steps.calc_grade.outputs.result }};
@@ -566,63 +599,63 @@ jobs:
             | Student: | ${{ needs.check_issue.outputs.name }} |
             | Username: | \`${{ needs.check_issue.outputs.user }}\` |
             | | |
-            | Assignment: | \`${results.assignment}\` |
-            | Deadline: | ${results.deadline_text} |
-            | Submitted: | ${results.submitted_text} |
-            | Verification: | ${results.submitted_link} |
+            | Assignment: | \`${ results.assignment }\` |
+            | Deadline: | ${ results.deadline_text } |
+            | Submitted: | ${ results.submitted_text } |
+            | Verification: | ${ results.submitted_link } |
             | | |
-            | Late Days: | ${results.late_days} days |
-            | Late Penalty: | ${results.late_deduction} points |
+            | Late Days: | ${ results.late_days } days |
+            | Late Penalty: | ${ results.late_deduction } points |
             | | |
-            | Possible Grade: | ${results.possible} points |
-            | Earned Grade: | **${results.earned} points** |
+            | Possible Grade: | ${ results.possible } points |
+            | Earned Grade: | **${ results.earned } points** |
 
             You will receive a notice once your grade has been updated on Canvas.
             `;
             console.log(body);
 
-            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: body});
+            github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: body });
 
-            const assignees = [ 'sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon' ];
-            const labels = [results.type, `project${results.project}`];
+            const assignees = ['sjengle', 'igentle292', 'mtquach2', 'par5ul1', 'tydaljames', 'ybsolomon'];
+            const labels = [results.type, `project${ results.project }`];
 
-            github.rest.issues.update({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'open', assignees: assignees, labels: labels, milestone: ${{ needs.check_issue.outputs.mile }}});
+            github.rest.issues.update({ owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, state: 'open', assignees: assignees, labels: labels, milestone: ${{ needs.check_issue.outputs.mile }} });
 
-      - name: "Check failure"
-        id: check_failure
+      - name: 'Check failure'
+        id: 'check_failure'
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             console.log(process.env.ERROR_MESSAGE);
             core.setOutput('error_message', process.env.ERROR_MESSAGE);
 
   make_branch:
-    name: "Branch"
+    name: 'Branch'
     if: ${{ !failure() && needs.check_issue.outputs.type == 'review-request' }}
-    needs: [check_issue, check_actions, check_reviews]
+    needs: ['check_issue', 'check_actions', 'check_reviews']
     runs-on: ubuntu-latest
 
     outputs:
-      error_message: ${{ steps.check_status.outputs.error_message }}
+      error_message: '${{ steps.check_status.outputs.error_message }}'
 
     steps:
-      - name: "Checkout repository"
+      - name: 'Checkout repository'
         run: |
           git clone --depth 1 --no-tags https://github-actions:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} project-main
 
-      - name: "Listing source code"
-        working-directory: "project-main"
+      - name: 'Listing source code'
+        working-directory: 'project-main'
         run: |
           ls -ACGR src/main/java
 
-      - name: "Fetching commit history and tags"
-        working-directory: "project-main"
+      - name: 'Fetching commit history and tags'
+        working-directory: 'project-main'
         run: |
           git fetch --unshallow --tags
 
-      - name: "Comparing release to main branch"
-        working-directory: "project-main"
+      - name: 'Comparing release to main branch'
+        working-directory: 'project-main'
         run: |
           RUN_STATUS=0
           git diff --exit-code --shortstat origin/main refs/tags/${{ needs.check_issue.outputs.release }} || RUN_STATUS=$?
@@ -630,15 +663,15 @@ jobs:
           if [[ RUN_STATUS -ne 0 ]]; then
             ERROR_MESSAGE="The main branch has one or more commits since release ${{ needs.check_issue.outputs.release }} was created. There must be no changes between the main branch and the release for code review."
             echo "ERROR_MESSAGE<<EOF" >> $GITHUB_ENV
-            echo ":no_entry: ${ERROR_MESSAGE} $FIX_ERRORS" >> $GITHUB_ENV
-            echo "$RUN_DETAIL" >> $GITHUB_ENV
+            echo ":no_entry: ${ERROR_MESSAGE} ${FIX_ERRORS}" >> $GITHUB_ENV
+            echo "${RUN_DETAIL}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
             echo "::error ::${ERROR_MESSAGE}"
             exit 1
           fi
 
-      - name: "Creating review branch"
-        working-directory: "project-main"
+      - name: 'Creating review branch'
+        working-directory: 'project-main'
         run: |
           RUN_STATUS=0
           git checkout -b review/${{ needs.check_issue.outputs.release }} || RUN_STATUS=$?
@@ -646,15 +679,16 @@ jobs:
           if [[ RUN_STATUS -ne 0 ]]; then
             ERROR_MESSAGE="Unable to create review branch for release ${{ needs.check_issue.outputs.release }}. If this branch already exists, please delete it before requesting code review or request code review of a different release."
             echo "ERROR_MESSAGE<<EOF" >> $GITHUB_ENV
-            echo ":no_entry: ${ERROR_MESSAGE} $FIX_ERRORS" >> $GITHUB_ENV
-            echo "$RUN_DETAIL" >> $GITHUB_ENV
+            echo ":no_entry: ${ERROR_MESSAGE} ${FIX_ERRORS}" >> $GITHUB_ENV
+            echo "${RUN_DETAIL}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
             echo "::error ::${ERROR_MESSAGE}"
             exit 1
           fi
 
-      - name: "Pushing review branch"
-        working-directory: "project-main"
+      - name: 'Pushing review branch'
+        working-directory: 'project-main'
+        if: ${{ false }} # TODO temporarily disable
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
@@ -667,8 +701,8 @@ jobs:
           if [[ RUN_STATUS -ne 0 ]]; then
             ERROR_MESSAGE="Unable to push review branch for release ${{ needs.check_issue.outputs.release }}. If this branch already exists, please delete it before requesting code review or request code review of a different release."
             echo "ERROR_MESSAGE<<EOF" >> $GITHUB_ENV
-            echo ":no_entry: ${ERROR_MESSAGE} $FIX_ERRORS" >> $GITHUB_ENV
-            echo "$RUN_DETAIL" >> $GITHUB_ENV
+            echo ":no_entry: ${ERROR_MESSAGE} ${FIX_ERRORS}" >> $GITHUB_ENV
+            echo "${RUN_DETAIL}" >> $GITHUB_ENV
             echo "EOF" >> $GITHUB_ENV
             echo "::error ::${ERROR_MESSAGE}"
             exit 1
@@ -678,9 +712,10 @@ jobs:
       # TODO Calculate calendly link
       # TODO Update pull request instructions
 
-      - name: "Create pull request"
-        id: create_pull
-        uses: actions/github-script@v6
+      - name: 'Create pull request'
+        id: 'create_pull'
+        uses: 'actions/github-script@v6'
+        if: ${{ false }} # TODO temporarily disable
         with:
           script: |
             const body = `:robot: The code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
@@ -695,7 +730,7 @@ jobs:
             }
             \`\`\`
 
-            This pull request closes #${context.payload.issue.number} -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
+            This pull request closes #${ context.payload.issue.number } -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
             `;
 
             const result = await github.rest.pulls.create({
@@ -711,14 +746,15 @@ jobs:
 
             if (result.status != 201) {
               const error_message = `Unable to create pull request for release ${{ needs.check_issue.outputs.release }} (status ${result.status}).`;
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${ error_message }\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(error_message);
             }
 
             return result;
 
-      - name: "Update pull request"
-        uses: actions/github-script@v6
+      - name: 'Update pull request'
+        uses: 'actions/github-script@v6'
+        if: ${{ false }} # TODO temporarily disable
         with:
           script: |
             // only used if something here fails
@@ -787,10 +823,10 @@ jobs:
             // output results
             Promise.allSettled([pull_comment, request_review, update_pull, issue_comment, issue_update]).then(values => console.log(values));
 
-      - name: "Check failure"
-        id: check_status
+      - name: 'Check failure'
+        id: 'check_status'
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             console.log(process.env.ERROR_MESSAGE);
@@ -801,13 +837,13 @@ jobs:
 # Add comment to issue and pull request with when the appointment should happen.
 
   check_status:
-    name: "Status"
+    name: 'Status'
     if: ${{ failure() }}
-    needs: [check_actions, check_reviews, make_grade, make_branch]
-    runs-on: ubuntu-latest
+    needs: ['check_actions', 'check_reviews', 'make_grade', 'make_branch']
+    runs-on: 'ubuntu-latest'
     steps:
-      - name: "Check status"
-        uses: actions/github-script@v6
+      - name: 'Check status'
+        uses: 'actions/github-script@v6'
         with:
           script: |
             const results = ${{ toJSON(needs) }};

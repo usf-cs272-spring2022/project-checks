@@ -981,6 +981,10 @@ jobs:
             console.log(link);
 
             const body = `:robot: Congratulations @${{ github.actor }}, your code review request has been approved. See below for how to proceed.
+
+            ## :memo: Instructions
+
+            Use [**this personalized appointment signup link**](${ link }) to sign up for a code review.
             `;
 
             console.log(body);

@@ -380,12 +380,12 @@ jobs:
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              state: 'closed',
-              assignee: 'sjengle',
-              labels: `project${ project }`,
-              milestone: milestone,
-              sort: 'created',
-              direction: 'desc',
+              //state: 'closed',
+              //assignee: 'sjengle',
+              //labels: `project${ project }`,
+              //milestone: milestone,
+              //sort: 'created',
+              //direction: 'desc',
               per_page: 100
             });
 

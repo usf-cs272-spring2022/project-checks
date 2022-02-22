@@ -494,7 +494,7 @@ jobs:
             // if this is first code review
             if (reviews == 0) {
               const today = DateTime.now().setZone(zone);
-              const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
+              const late = DateTime.fromISO(process.env[`PROJECT_${ project }_REVIEW`], { zone: zone });
 
               core.exportVariable('next_type', 'Code');
               core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));
@@ -510,6 +510,8 @@ jobs:
               // otherwise lookup past code review information
               const issues = ${{ toJSON( steps.check_eligible.outputs.result ) }};
               const pulls = issues.filter(issue => issue.pull_request != undefined);
+
+              // const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
             }
 
             // set calculated values
@@ -962,7 +964,7 @@ jobs:
             core.exportVariable('ERROR_MESSAGE', `:no_entry: Something went wrong updating the pull request. Reach out to the instructor on Piazza for next steps. ${ process.env.RUN_DETAIL }`);
 
             // get pull request results
-            const results = { 'html_url': '#' }; // ${{ steps.create_pull.outputs.result }};
+            const results = { html_url: '#' }; // ${{ steps.create_pull.outputs.result }};
 
             // craft link
             const link = `${ process.env.REVIEW_LINK }&name=${ encodeURIComponent('${{ needs.check_issue.outputs.name }}') }&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${ encodeURIComponent(results.html_url) }`;

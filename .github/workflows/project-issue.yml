@@ -20,7 +20,8 @@ env:
   GRADE_RELEASE:  'grade-release' # label used to request final release grade
   REQUEST_REVIEW: 'review-request' # label used to request code review
 
-  # deadlines for code reviews (prevent date conversion)
+  # deadlines for code reviews
+  # for some reason these are getting converted into mm/dd/yyyy hh:mm:ss format
   PROJECT_1_REVIEW: "2022-03-08T23:59:59"
   PROJECT_2_REVIEW: "2022-04-05T23:59:59"
   PROJECT_3_REVIEW: "2022-04-26T23:59:59"
@@ -494,14 +495,14 @@ jobs:
             // if this is first code review
             if (reviews == 0) {
               const today = DateTime.now().setZone(zone);
-              console.log(process.env[`PROJECT_${ project }_REVIEW`]);
-              console.log(typeof process.env[`PROJECT_${ project }_REVIEW`]);
+              const deadline = process.env[`PROJECT_${ project }_REVIEW`];
 
-              const late = today; //DateTime.fromISO(process.env[`PROJECT_${ project }_REVIEW`], { zone: zone });
+              // something is converting the dates to non-ISO format
+              const converted = DateTime.fromFormat("MM/dd/yyyy HH:mm:ss", { zone: zone });
 
               core.exportVariable('next_type', 'Code');
               core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));
-              core.exportVariable('next_late', late.toLocaleString(DateTime.DATE_HUGE));
+              core.exportVariable('next_late', converted.toLocaleString(DateTime.DATE_HUGE));
               core.exportVariable('next_link', `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`);
 
               core.exportVariable('last_pull', 'N/A');

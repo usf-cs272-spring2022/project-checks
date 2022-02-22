@@ -496,9 +496,10 @@ jobs:
             if (reviews == 0) {
               const today = DateTime.now().setZone(zone);
               const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+              console.log(`Deadline: ${deadline}`);
 
               // something is converting the dates to non-ISO format
-              const converted = DateTime.fromFormat("MM/dd/yyyy HH:mm:ss", { zone: zone });
+              const converted = DateTime.fromFormat("MM/dd/yyyy HH:mm:ss");
 
               core.exportVariable('next_type', 'Code');
               core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));

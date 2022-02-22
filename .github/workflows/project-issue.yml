@@ -20,11 +20,10 @@ env:
   GRADE_RELEASE:  'grade-release' # label used to request final release grade
   REQUEST_REVIEW: 'review-request' # label used to request code review
 
-  # deadlines for code reviews
-  # prevent conversion with " " style double quotes
-  PROJECT_1_REVIEW: "2022-03-08T23:59:59"
-  PROJECT_2_REVIEW: "2022-04-05T23:59:59"
-  PROJECT_3_REVIEW: "2022-04-26T23:59:59"
+  # deadlines for code reviews (prevent date conversion)
+  PROJECT_1_REVIEW: !!str 2022-03-08T23:59:59
+  PROJECT_2_REVIEW: !!str 2022-04-05T23:59:59
+  PROJECT_3_REVIEW: !!str 2022-04-26T23:59:59
 
   # default messages
   # newlines require " " style double quotes

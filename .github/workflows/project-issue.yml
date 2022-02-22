@@ -382,11 +382,11 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'all',
-              //assignee: 'sjengle',
-              //labels: `project${ project }`,
-              //milestone: milestone,
-              //sort: 'created',
-              //direction: 'desc',
+              assignee: 'sjengle',
+              labels: `project${ project }`,
+              milestone: milestone,
+              sort: 'created',
+              direction: 'desc',
               per_page: 100
             });
 

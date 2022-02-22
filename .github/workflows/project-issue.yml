@@ -881,6 +881,8 @@ jobs:
         with:
           script: |
             const last_type = '${{ needs.check_reviews.outputs.last_type }}';
+            const last_pull = '${{ needs.check_reviews.outputs.last_type }}';
+
             const next_type = '${{ needs.check_reviews.outputs.next_type }}';
 
             const body = `:robot: The code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
@@ -891,14 +893,14 @@ jobs:
               "username": "${{ needs.check_issue.outputs.user }}",
 
               "release":  "${{ needs.check_issue.outputs.release }}",
-              "project":  "${{ needs.check_issue.outputs.project }}",
-              "reviews":  "${{ needs.check_issue.outputs.reviews }}",
+              "project":  ${{ needs.check_issue.outputs.project }},
+              "reviews":  ${{ needs.check_issue.outputs.reviews }},
 
               "last_review": {
-                "pull": "#${{ needs.check_reviews.outputs.last_pull }}",
-                "type": "${ last_type.toLowerCase() }",
+                "pull": "${ last_pull != "N/A" ? '#' : '' }${ last_pull }",
+                "type": "${ last_type != "N/A" ? last_type.toLowerCase() : last_type }",
                 "date": "${{ needs.check_reviews.outputs.last_date }}",
-                "pass": "${{ needs.check_reviews.outputs.last_pass }}"
+                "pass": ${{ needs.check_reviews.outputs.last_pass }}
               },
 
               "this_review": {

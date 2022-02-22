@@ -963,10 +963,10 @@ jobs:
         #if: ${{ false }} # TODO temporarily disable
 
         env:
-          REVIEW_TYPE: '${{ needs.check_reviews.output.next_type }}'
-          REVIEW_DATE: '${{ needs.check_reviews.output.next_date }}'
-          REVIEW_LATE: '${{ needs.check_reviews.output.next_late }}'
-          REVIEW_LINK: '${{ needs.check_reviews.output.next_link }}'
+          REVIEW_TYPE: '${{ needs.check_reviews.outputs.next_type }}'
+          REVIEW_DATE: '${{ needs.check_reviews.outputs.next_date }}'
+          REVIEW_LATE: '${{ needs.check_reviews.outputs.next_late }}'
+          REVIEW_LINK: '${{ needs.check_reviews.outputs.next_link }}'
 
         with:
           script: |
@@ -1004,6 +1004,55 @@ jobs:
             console.log(body);
 
             return; // TODO
+
+            // add instructions
+            const pull_comment = github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: results.number,
+              body: body
+            });
+
+            // request code review
+            const request_review = github.rest.pulls.requestReviewers({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: results.number,
+              reviewers: ['sjengle']
+            });
+
+            // update pull request labels and milestone
+            const update_pull = github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: results.number,
+              assignees: ['${{ github.actor }}'],
+              labels: ['project${{ needs.check_issue.outputs.project }}'],
+              milestone: ${{ needs.check_issue.outputs.mile }}
+            });
+
+            // update request issue
+            const issue_comment = github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              body: `:robot: @${{ github.actor }} your code review request has been processed! See pull request #${results.number} for additional instructions.
+              `
+            });
+
+            // close request issue
+            const issue_update = github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.issue.number,
+              assignees: ['${{ github.actor }}'],
+              labels: ['${{ needs.check_issue.outputs.type }}', 'project${{ needs.check_issue.outputs.project }}'],
+              milestone: ${{ needs.check_issue.outputs.mile }},
+              state: 'closed'
+            });
+
+            // output results
+            Promise.allSettled([pull_comment, request_review, update_pull, issue_comment, issue_update]).then(values => console.log(values));
 
       - name: 'Check failure'
         id: 'check_status'

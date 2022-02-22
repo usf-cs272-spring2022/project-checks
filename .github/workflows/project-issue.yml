@@ -50,7 +50,6 @@ jobs:
     steps:
       - name: 'Startup'
         uses: 'actions/github-script@v6'
-        if: ${{ false }} # TODO temporarily disable
         with:
           script: |
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
@@ -517,6 +516,7 @@ jobs:
               const pulls = issues.filter(issue => issue.pull_request != undefined);
 
               // const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
+              // TODO Continue here
             }
 
             // set calculated values
@@ -554,11 +554,6 @@ jobs:
           script: |
             console.log(process.env.ERROR_MESSAGE);
             core.setOutput('error_message', process.env.ERROR_MESSAGE);
-
-# TODO Check reviews
-# Check the type of review request approved
-# Set earliest and latest date for code review
-# Make sure already have test grade for project
 
   make_grade:
     name: 'Grade'
@@ -871,7 +866,6 @@ jobs:
 
       - name: 'Pushing review branch'
         working-directory: 'project-main'
-        if: ${{ false }} # TODO temporarily disable
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
@@ -891,14 +885,9 @@ jobs:
             exit 1
           fi
 
-      # TODO Change title to "Quick Review" if appropriate
-      # TODO Calculate calendly link
-      # TODO Update pull request instructions
-
       - name: 'Create pull request'
         id: 'create_pull'
         uses: 'actions/github-script@v6'
-        # if: ${{ false }} # TODO temporarily disable
         with:
           script: |
             const last_type = '${{ needs.check_reviews.outputs.last_type }}';
@@ -937,8 +926,6 @@ jobs:
 
             console.log(body);
 
-            return; // TODO
-
             const result = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
@@ -960,7 +947,7 @@ jobs:
 
       - name: 'Update pull request'
         uses: 'actions/github-script@v6'
-        #if: ${{ false }} # TODO temporarily disable
+        if: ${{ false }}
 
         env:
           REVIEW_TYPE: '${{ needs.check_reviews.outputs.next_type }}'
@@ -1002,8 +989,6 @@ jobs:
             `;
 
             console.log(body);
-
-            return; // TODO
 
             // add instructions
             const pull_comment = github.rest.issues.createComment({
@@ -1062,10 +1047,6 @@ jobs:
           script: |
             console.log(process.env.ERROR_MESSAGE);
             core.setOutput('error_message', process.env.ERROR_MESSAGE);
-
-# TODO Make branch
-# Check the type of review request (approved for normal or quick review).
-# Add comment to issue and pull request with when the appointment should happen.
 
   check_status:
     name: 'Status'

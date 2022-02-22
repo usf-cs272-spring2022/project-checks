@@ -17,8 +17,8 @@ env:
   REQUEST_REVIEW: 'review-request' # label used to request code review
 
   # default messages
-  RUN_DETAIL: '\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
-  FIX_ERRORS: 'After fixing this request, remove the `error` label and re-open this issue.'
+  RUN_DETAIL: "\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+  FIX_ERRORS: "After fixing this request, remove the `error` label and re-open this issue."
 
 jobs:
   check_issue:
@@ -120,7 +120,7 @@ jobs:
             const matched = title.match(pattern);
 
             if (matched !== null && matched.length === 4) {
-              const release = parseInt(matched[1]);
+              const release = matched[1];
               const project = parseInt(matched[2]);
               const reviews = parseInt(matched[3]);
 

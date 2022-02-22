@@ -20,6 +20,11 @@ env:
   GRADE_RELEASE:  'grade-release' # label used to request final release grade
   REQUEST_REVIEW: 'review-request' # label used to request code review
 
+  # deadlines for code reviews
+  PROJECT_1_REVIEW: '2022-03-08T23:59:59'
+  PROJECT_2_REVIEW: '2022-04-05T23:59:59'
+  PROJECT_3_REVIEW: '2022-04-26T23:59:59'
+
   # default messages
   # newlines require " " style double quotes
   RUN_DETAIL: "\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
@@ -586,9 +591,9 @@ jobs:
 
               // when first code reviews are due
               config.deadline[GRADE_REVIEW] = {
-                project1: '2022-03-08T23:59:59',
-                project2: '2022-04-05T23:59:59',
-                project3: '2022-04-26T23:59:59'
+                project1: process.env.PROJECT_1_REVIEW,
+                project2: process.env.PROJECT_2_REVIEW,
+                project3: process.env.PROJECT_3_REVIEW
               };
 
               // possible points total
@@ -939,7 +944,7 @@ jobs:
               core.setFailed(error_message);
             }
 
-            return result;
+            return result.data;
 
       - name: 'Update pull request'
         uses: 'actions/github-script@v6'
@@ -957,17 +962,31 @@ jobs:
             core.exportVariable('ERROR_MESSAGE', `:no_entry: Something went wrong updating the pull request. Reach out to the instructor on Piazza for next steps. ${ process.env.RUN_DETAIL }`);
 
             // get pull request results
-            const results = {}; // ${{ steps.create_pull.outputs.result }};
+            const results = { 'html_url': '#' }; // ${{ steps.create_pull.outputs.result }};
 
             // craft link
-            const link = `${ process.env.REVIEW_LINK }&name=${ encodeURIComponent('${{ needs.check_issue.outputs.name }}') }&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${ encodeURIComponent(results.data.html_url) }`;
+            const link = `${ process.env.REVIEW_LINK }&name=${ encodeURIComponent('${{ needs.check_issue.outputs.name }}') }&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${ encodeURIComponent(results.html_url) }`;
             console.log(link);
 
-            const body = `:spiral_calendar: @${{ github.actor }} use [**this personalized appointment signup link**](${link}) to sign up for a ${ process.env.REVIEW_TYPE.toLowerCase() } review.
+            const body = `:robot: Congratulations @${{ github.actor }}, your code review request has been approved. See below for how to proceed.
 
-            The earliest you may have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by **${ process.env.REVIEW_LATE }** to avoid late penalties. You may only have one upcoming appointment at a time!
+            ## :memo: Instructions
 
-            :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
+            Use [**this personalized appointment signup link**](${ link }) to sign up for a code review.
+
+            The earliest you are eligible to have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by **${ process.env.REVIEW_LATE }** to avoid late penalties. You may only have one upcoming appointment at a time!
+
+            ## :warning: Warnings
+
+            Be careful to avoid the following issues before your appointment:
+
+              - Do not make modifications to the code in your `main` branch before your appointment. If your code is not ready for code review, close this request, cancel your appointment, and re-request a code review when your code is ready.
+
+              - Do not merge this pull request until it is approved by the instructor during your code review appointment. If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
+
+              - Do not abuse the appointment system. This includes signing up for more than one appointment at a time, signing up before you are eligible for an appointment, arriving more than 5 minutes late or missing an appointment, and signing up for an appointment before you are approved.
+
+            Repeat issues with the code review process may result in a point deduction to your code review grades.
             `;
 
             console.log(body);
@@ -978,7 +997,7 @@ jobs:
             const pull_comment = github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: results.data.number,
+              issue_number: results.number,
               body: body
             });
 
@@ -986,7 +1005,7 @@ jobs:
             const request_review = github.rest.pulls.requestReviewers({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              pull_number: results.data.number,
+              pull_number: results.number,
               reviewers: ['sjengle']
             });
 
@@ -994,7 +1013,7 @@ jobs:
             const update_pull = github.rest.issues.update({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: results.data.number,
+              issue_number: results.number,
               assignees: ['${{ github.actor }}'],
               labels: ['project${{ needs.check_issue.outputs.project }}'],
               milestone: ${{ needs.check_issue.outputs.mile }}

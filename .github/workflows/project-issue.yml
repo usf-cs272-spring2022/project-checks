@@ -4,48 +4,48 @@
 # - do not need a separate repository
 # - do not need to keep node packages up to date
 
-name: "Check project issue"
+name: 'Check project issue'
 
 on:
   workflow_call:
 
 env:
   # labels used for different types of requests
-  GRADE_TESTS: "grade-tests" # label used to request tests grade
-  GRADE_REVIEW: "grade-review" # label used to request code review grade
-  GRADE_RELEASE: "grade-release" # label used to request final release grade
-  REQUEST_REVIEW: "review-request" # label used to request code review
+  GRADE_TESTS:    'grade-tests' # label used to request tests grade
+  GRADE_REVIEW:   'grade-review' # label used to request code review grade
+  GRADE_RELEASE:  'grade-release' # label used to request final release grade
+  REQUEST_REVIEW: 'review-request' # label used to request code review
 
   # default messages
-  RUN_DETAIL: "\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
-  FIX_ERRORS: "After fixing this request, remove the `error` label and re-open this issue."
+  RUN_DETAIL: '\n\n:octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details.'
+  FIX_ERRORS: 'After fixing this request, remove the `error` label and re-open this issue.'
 
 jobs:
   check_issue:
-    name: "Issue"
-    runs-on: ubuntu-latest
+    name: 'Issue'
+    runs-on: 'ubuntu-latest'
 
     outputs:
-      type: ${{ steps.check_labels.outputs.type }}
-      name: ${{ steps.check_body.outputs.name }}
-      user: ${{ steps.check_body.outputs.user }}
-      mile: ${{ steps.check_miles.outputs.mile }}
-      release: ${{ steps.check_title.outputs.release }}
-      project: ${{ steps.check_title.outputs.project }}
-      reviews: ${{ steps.check_title.outputs.reviews }}
+      type: '${{ steps.check_labels.outputs.type }}'
+      name: '${{ steps.check_body.outputs.name }}'
+      user: '${{ steps.check_body.outputs.user }}'
+      mile: '${{ steps.check_miles.outputs.mile }}'
+      release: '${{ steps.check_title.outputs.release }}'
+      project: '${{ steps.check_title.outputs.project }}'
+      reviews: '${{ steps.check_title.outputs.reviews }}'
 
     steps:
-      - name: "Startup"
-        uses: actions/github-script@v6
+      - name: 'Startup'
+        uses: 'actions/github-script@v6'
         with:
           script: |
             github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
             console.log(context);
 
-      - name: "Check issue labels"
-        id: check_labels
+      - name: 'Check issue labels'
+        id: 'check_labels'
         if: ${{ always() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE, REQUEST_REVIEW } = process.env;
@@ -69,10 +69,10 @@ jobs:
             core.setOutput('error_message', `:no_entry: Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '*(none)*' : labels.join(', ')}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
             core.setFailed(`Unable to determine request type from issue #${ context.payload.issue.number } labels: ${labels.length === 0 ? '(none)' : labels.join(', ')}`);
 
-      - name: "Check issue body"
-        id: check_body
+      - name: 'Check issue body'
+        id: 'check_body'
         if: ${{ always() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             const body = context.payload.issue.body;
@@ -105,51 +105,58 @@ jobs:
             core.setOutput('error_message', `:no_entry: ${error_message}\n\nMake sure to use the provided issue templates. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
             core.setFailed(error_message);
 
-      - name: "Check issue title"
-        id: check_title
+      - name: 'Check issue title'
+        id: 'check_title'
         if: ${{ always() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
+        env:
+          REQUEST_TYPE: '${{ steps.check_labels.outputs.type }}'
         with:
           script: |
             const title = context.payload.issue.title;
-            console.log(`Issue Title: ${title}`);
+            console.log(`Issue Title: ${ title }`);
 
             const pattern = /^Request.+\b(v([1-4])\.(\d+)\.\d+)$/;
             const matched = title.match(pattern);
 
             if (matched !== null && matched.length === 4) {
-              const release = matched[1];
-              const project = matched[2];
-              const reviews = matched[3];
+              const release = parseInt(matched[1]);
+              const project = parseInt(matched[2]);
+              const reviews = parseInt(matched[3]);
+
               core.setOutput('release', release);
               core.setOutput('project', project);
               core.setOutput('reviews', reviews);
+
               console.log(`Release: ${release}, Project: ${project}, Reviews: ${reviews}`);
 
-              if (parseInt(reviews) > 1 && '${{ steps.check_labels.outputs.type }}' == '${{ env.GRADE_REVIEW }}') {
+              if (reviews > 1 && process.env.REQUEST_TYPE == process.env.GRADE_REVIEW) {
                 // only request code review grades for code review 0 and 1
-                core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews.\n\n> ${title}\n\n ${ process.env.RUN_DETAIL }`);
+                core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews.\n\n> ${ title }\n\n ${ process.env.RUN_DETAIL }`);
                 core.setFailed(`Invalid request; you can only request code review grades for your first two code reviews.`);
               }
             }
             else {
               core.setOutput('error_message', `:no_entry: Unable to parse release from issue #${ context.payload.issue.number } title:\n\n> ${title}\n\nMake sure to replace \`v0.0.0\` in the issue title with a properly-formated release number. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-              core.setFailed(`Unable to parse release from issue #${ context.payload.issue.number } title: ${title}`);
+              core.setFailed(`Unable to parse release from issue #${ context.payload.issue.number } title: ${ title }`);
             }
 
-      - name: "Check milestones"
-        id: check_miles
-        uses: actions/github-script@v6
+      - name: 'Check milestones'
+        id: 'check_miles'
+        uses: 'actions/github-script@v6'
+        env:
+          PROJECT_NUM: '${{ steps.check_title.outputs.project }}'
         with:
           script: |
-            const name = 'Project ${{ steps.check_title.outputs.project }}';
-            console.log(`Milestone: ${name}`);
+            const name = `Project ${ process.env.PROJECT_NUM }`;
+            console.log(`Milestone: ${ name }`);
 
             const milestones = await github.rest.issues.listMilestones({
               owner: context.repo.owner,
               repo: context.repo.repo,
               per_page: 100
             });
+
             console.log(milestones);
 
             if (milestones.status != 200) {
@@ -166,8 +173,8 @@ jobs:
               console.log(created);
 
               if (created.status != 201) {
-                core.setOutput('error_message', `:no_entry: Unable to create ${name} milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-                core.setFailed(`Unable to create ${name} milestone. Status: ${created.status}`);
+                core.setOutput('error_message', `:no_entry: Unable to create ${ name } milestone. This may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(`Unable to create ${ name } milestone. Status: ${ created.status }`);
                 return;
               }
 
@@ -175,12 +182,12 @@ jobs:
             }
 
             core.setOutput('mile', found.number);
-            console.log(`Milestone ${found.title} has number: ${found.number}`);
+            console.log(`Milestone ${ found.title } has number: ${ found.number }`);
 
-      - name: "Check failures"
-        id: check_failures
+      - name: 'Check failures'
+        id: 'check_failures'
         if: ${{ failure() }}
-        uses: actions/github-script@v6
+        uses: 'actions/github-script@v6'
         with:
           script: |
             const steps = ${{ toJSON(steps) }};

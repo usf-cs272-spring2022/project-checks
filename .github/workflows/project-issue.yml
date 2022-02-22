@@ -403,7 +403,7 @@ jobs:
             console.log(issues);
             core.endGroup();
 
-            if (issues.status != 200) {
+            if (issues.status != 200 || true) { // TODO testing
               const error_message = `Unable to fetch closed issues for project ${ project } with the correct assignees, milestone, and labels.`;
               core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(error_message);
@@ -413,6 +413,20 @@ jobs:
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
               core.setFailed('Not yet implemented.');
               return;
+            }
+
+            if (process.env.TYPE == process.env.REQUEST_REVIEW && reviews == 0) {
+              const found = issues.data.find(issue => issue.title.startsWith(`Request Test Grade v${ project }`));
+
+              if (found == undefined) {
+                const error_message = `You must successfully request a project ${ project } test grade before requesting a code review.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+
+              // only get here if found an issue
+              console.log(`Found issue #${ found.number }: ${ found.title }`);
             }
 
       - name: 'Check pull requests'

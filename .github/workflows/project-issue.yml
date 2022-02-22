@@ -27,13 +27,15 @@ jobs:
     runs-on: 'ubuntu-latest'
 
     outputs:
-      type: '${{ steps.check_labels.outputs.type }}'
-      name: '${{ steps.check_body.outputs.name }}'
-      user: '${{ steps.check_body.outputs.user }}'
-      mile: '${{ steps.check_miles.outputs.mile }}'
-      release: '${{ steps.check_title.outputs.release }}'
-      project: '${{ steps.check_title.outputs.project }}'
-      reviews: '${{ steps.check_title.outputs.reviews }}'
+      type: '${{ steps.check_labels.outputs.type }}' # type of request parsed from labels
+      name: '${{ steps.check_body.outputs.name }}'   # name of student parsed from body
+      user: '${{ steps.check_body.outputs.user }}'   # username of student parsed from body
+
+      release: '${{ steps.check_title.outputs.release }}' # release parsed from title
+      project: '${{ steps.check_title.outputs.project }}' # number of project parsed from release
+      reviews: '${{ steps.check_title.outputs.reviews }}' # number of reviews parsed from release
+
+      mile: '${{ steps.check_miles.outputs.mile }}' # milestone to use based on project number
 
     steps:
       - name: 'Startup'
@@ -113,6 +115,7 @@ jobs:
         uses: 'actions/github-script@v6'
         env:
           REQUEST_TYPE: '${{ steps.check_labels.outputs.type }}'
+          FORCE: '${{ steps.check_body.outputs.force }}'
         with:
           script: |
             const title = context.payload.issue.title;
@@ -348,10 +351,12 @@ jobs:
   check_reviews:
     name: 'Reviews'
     runs-on: 'ubuntu-latest'
-    if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'review-request' }}
+    if: ${{ needs.check_issue.outputs.type == 'grade-release' || needs.check_issue.outputs.type == 'grade-review' || needs.check_issue.outputs.type == 'review-request' }}
     needs: ['check_issue']
 
     outputs:
+      error_message:  '${{ steps.check_status.outputs.error_message }}'
+
       next_review_type: '${{ steps.pending.outputs.next_review_type }}' # Code, Quick, None
       next_review_date: '${{ steps.pending.outputs.next_review_date }}' # Date of Next Review, None
 
@@ -363,14 +368,16 @@ jobs:
       NEXT_MAX: 10 # Maximum number of days before next review (see: late penalty)
 
     steps:
-      - name: 'Check grade issues'
-        id: 'check_grades'
+      - name: 'Check eligibility'
+        id: 'check_eligible'
         uses: 'actions/github-script@v6'
 
         env:
           PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
           REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
           MILE_NUM: '${{ needs.check_issue.outputs.mile }}'
+          RELEASE: '${{ needs.check_issue.outputs.release }}'
+          TYPE: '${{ needs.check_issue.outputs.type }}'
 
         with:
           script: |
@@ -378,12 +385,14 @@ jobs:
             const reviews = parseInt(process.env.REVIEWS_NUM);
             const milestone = parseInt(process.env.MILE_NUM);
 
+            // use issues (not actions) since instructor can override issue behavior
+            // returns issues and pull requests together
             const issues = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'all',
               assignee: 'sjengle',
-              //labels: `project${ project }`,
+              labels: `project${ project }`,
               milestone: milestone,
               sort: 'created',
               direction: 'desc',
@@ -401,15 +410,49 @@ jobs:
               return;
             }
 
-            // if requesting code review...
-            // if 0 check if test grade
-            // if 1 check if review 1 grade
-            // if 2 check if review 2 grade
+            if (process.env.TYPE == process.env.GRADE_REVIEW) {
+              core.setFailed('Not yet implemented.');
+              return;
+            }
 
-            // if requesting final release...
-            // check if review 2 grade
+            if (process.env.TYPE == process.env.REQUEST_REVIEW && reviews == 0) {
+              const found = issues.data.find(issue => issue.title.startsWith(`Request Test Grade v${ project }`));
 
-      - name: 'Pending'
+              if (found == undefined) {
+                const error_message = `You must successfully request a project ${ project } test grade before requesting a code review.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+
+              // only get here if found an issue
+              console.log(`Found issue #${ found.number }: ${ found.title }`);
+            }
+
+            // know we have either a GRADE_RELEASE request or reviews > 0
+            // in both cases, need to count number of code review issues
+            const filtered = issues.data.filter(issue => issue.title.startsWith(`Request Code Review v${ project }`));
+            console.log(`Found code review requests: ${ filtered.map(issue => issue.title + ' (#' + ${ issue.number } + ')') }`);
+
+            if (process.env.TYPE == process.env.GRADE_RELEASE || reviews > 1) {
+              if (filtered.length < 2) {
+                const error_message = `You must successfully request your second project ${ project } code review grade before making another request.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+            }
+            else if (reviews == 1 && filtered.length < 1) {
+              const error_message = `You must successfully request your first project ${ project } code review grade before making another request.`;
+              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+              core.setFailed(error_message);
+              return;
+            }
+            else {
+              core.setFailed(`Unexpected request "${ process.env.TYPE }" for release ${ process.env.RELEASE }.`);
+            }
+
+      - name: 'Check pull requests'
         id: 'pending'
         uses: 'actions/github-script@v6'
         with:
@@ -423,6 +466,15 @@ jobs:
             core.setOutput('last_review_text', 'Pending');
 
             console.log("hello world");
+
+      - name: 'Check status'
+        id: 'check_status'
+        if: ${{ failure() }}
+        uses: 'actions/github-script@v6'
+        with:
+          script: |
+            console.log(process.env.ERROR_MESSAGE);
+            core.setOutput('error_message', process.env.ERROR_MESSAGE);
 
 # TODO Check reviews
 # Check the type of review request approved

@@ -384,7 +384,7 @@ jobs:
               state: 'all',
               assignee: 'sjengle',
               //labels: `project${ project }`,
-              //milestone: milestone,
+              milestone: milestone,
               sort: 'created',
               direction: 'desc',
               per_page: 100

@@ -939,7 +939,7 @@ jobs:
 
       - name: 'Update pull request'
         uses: 'actions/github-script@v6'
-        if: ${{ false }} # TODO temporarily disable
+        #if: ${{ false }} # TODO temporarily disable
 
         env:
           REVIEW_TYPE: '${{ needs.check_reviews.output.next_type }}'
@@ -961,10 +961,14 @@ jobs:
 
             const body = `:spiral_calendar: @${{ github.actor }} use [**this personalized appointment signup link**](${link}) to sign up for a ${ process.env.REVIEW_TYPE.toLowerCase() } review.
 
-            The **earliest** you may have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by PENDING to avoid late penalties. You may only have one upcoming appointment at a time!
+            The earliest you may have a code review is **${ process.env.REVIEW_DATE }**. You must have a code review by **${ process.env.REVIEW_LATE }** to avoid late penalties. You may only have one upcoming appointment at a time!
 
             :warning: **Do NOT merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
             `;
+
+            console.log(body);
+
+            return; // TODO
 
             // add instructions
             const pull_comment = github.rest.issues.createComment({

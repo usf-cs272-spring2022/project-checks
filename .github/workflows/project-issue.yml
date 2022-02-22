@@ -431,27 +431,28 @@ jobs:
               // only get here if found an issue
               console.log(`Found issue #${ found.number }: ${ found.title }`);
             }
+            else {
+              const filtered = issues.data.filter(issue => issue.title.startsWith(`Request Code Review v${ project }`));
+              console.log(`Found code review requests: ${ filtered.length == 0 ? '(none)' : filtered.map(issue => issue.title) }`);
 
-            const filtered = issues.data.filter(issue => issue.title.startsWith(`Request Code Review v${ project }`));
-            console.log(`Found code review requests: ${ filtered.length == 0 ? '(none)' : filtered.map(issue => issue.title) }`);
-
-            if (process.env.TYPE == process.env.GRADE_RELEASE || reviews > 1) {
-              if (filtered.length < 2) {
-                const error_message = `You must successfully request your second project ${ project } code review grade before making another request.`;
+              if (process.env.TYPE == process.env.GRADE_RELEASE || reviews > 1) {
+                if (filtered.length < 2) {
+                  const error_message = `You must successfully request your second project ${ project } code review grade before making another request.`;
+                  core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                  core.setFailed(error_message);
+                  return;
+                }
+              }
+              else if (reviews == 1 && filtered.length < 1) {
+                const error_message = `You must successfully request your first project ${ project } code review grade before making another request.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(error_message);
                 return;
               }
-            }
-            else if (reviews == 1 && filtered.length < 1) {
-              const error_message = `You must successfully request your first project ${ project } code review grade before making another request.`;
-              core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-              core.setFailed(error_message);
-              return;
-            }
-            else {
-              core.setFailed(`Unexpected request "${ process.env.TYPE }" for release ${ process.env.RELEASE }.`);
-              return;
+              else {
+                core.setFailed(`Unexpected request "${ process.env.TYPE }" for release ${ process.env.RELEASE }.`);
+                return;
+              }
             }
 
             // if made it this far, everythign checks out

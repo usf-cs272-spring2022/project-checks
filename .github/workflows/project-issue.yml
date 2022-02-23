@@ -899,12 +899,12 @@ jobs:
 
             \`\`\`json
             {
-              "name":     "${{ needs.check_issue.outputs.name }}",
+              "name": "${{ needs.check_issue.outputs.name }}",
               "username": "${{ needs.check_issue.outputs.user }}",
 
-              "release":  "${{ needs.check_issue.outputs.release }}",
-              "project":  ${{ needs.check_issue.outputs.project }},
-              "reviews":  ${{ needs.check_issue.outputs.reviews }},
+              "release": "${{ needs.check_issue.outputs.release }}",
+              "project": ${{ needs.check_issue.outputs.project }},
+              "reviews": ${{ needs.check_issue.outputs.reviews }},
 
               "last_review": {
                 "pull": "${ last_pull != "N/A" ? '#' : '' }${ last_pull }",
@@ -947,7 +947,6 @@ jobs:
 
       - name: 'Update pull request'
         uses: 'actions/github-script@v6'
-        if: ${{ false }}
 
         env:
           REVIEW_TYPE: '${{ needs.check_reviews.outputs.next_type }}'

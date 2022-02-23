@@ -12,16 +12,26 @@ jobs:
     runs-on: 'ubuntu-latest'
     if: ${{ github.event.review.state == 'approved' && github.event.review.user.login == 'sjengle' }}
 
+    outputs:
+
+
     steps:
       - name: 'Startup'
         uses: 'actions/github-script@v6'
         with:
           script: |
-            github.rest.issues.createComment({owner: context.payload.organization.login, repo: context.payload.repository.name, issue_number: context.payload.pull_request.number, body: `:robot: The GitHub Actions bot is now processing this pull request...${ process.env.RUN_DETAIL}`});
             console.log(context);
+            let error_message = undefined;
 
-  update_request:
-    name: 'Update Request'
+            github.rest.issues.createComment({
+              owner: context.payload.organization.login,
+              repo: context.payload.repository.name,
+              issue_number: context.payload.pull_request.number,
+              body: `:robot: The GitHub Actions bot is now processing this pull request...${ process.env.RUN_DETAIL}`
+            });
+
+  update_labels:
+    name: 'Update Labels'
     runs-on: 'ubuntu-latest'
     needs: ['check_request']
 
@@ -31,28 +41,39 @@ jobs:
         if: ${{ contains(github.event.review.body, 'Resubmit for Code Review') }}
         with:
           script: |
-            console.log('Hello');
+            const label = 'review-resubmit';
+            core.exportVariable('label', label);
+            console.log('label:', label);
 
       - name: 'Quick'
         uses: 'actions/github-script@v6'
         if: ${{ contains(github.event.review.body, 'Resubmit for Quick Review') }}
         with:
           script: |
-            console.log('Hello');
+            const label = 'review-resubmit-quick';
+            core.exportVariable('label', label);
+            console.log('label:', label);
 
       - name: 'Pass'
         uses: 'actions/github-script@v6'
         if: ${{ contains(github.event.review.body, 'Pass') }}
         with:
           script: |
-            console.log('Hello');
+            const label = 'review-passed';
+            core.exportVariable('label', label);
+            console.log('label:', label);
 
       - name: 'Update'
         uses: 'actions/github-script@v6'
         if: ${{ !failure() }}
         with:
           script: |
-            console.log('Hello');
+            github.rest.issues.addLabels({
+              owner: context.payload.organization.login,
+              repo: context.payload.repository.name,
+              issue_number: context.payload.pull_request.number,
+              labels: [process.env.label]
+            });
 
 # TODO Check review
 # When a pull request review is submitted, check the status. If the status was

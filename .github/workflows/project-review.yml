@@ -18,7 +18,7 @@ jobs:
           script: |
             github.rest.issues.createComment({owner: context.payload.organization.login, repo: context.payload.repository.name, issue_number: context.payload.pull_request.number, body: `:robot: The GitHub Actions bot is now processing this pull request...${ process.env.RUN_DETAIL}`});
             console.log(context);
-            console.log(JSON.stringify(${{ github.event }}));
+            console.log(${{ github.event }});
 
 # TODO Check review
 # When a pull request review is submitted, check the status. If the status was

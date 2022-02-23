@@ -28,21 +28,21 @@ jobs:
     steps:
       - name: 'Code'
         uses: 'actions/github-script@v6'
-        if: ${{ contains(github.event.review.body, 'Resubmit for Code Review' }}
+        if: ${{ contains(github.event.review.body, 'Resubmit for Code Review') }}
         with:
           script: |
             console.log('Hello');
 
       - name: 'Quick'
         uses: 'actions/github-script@v6'
-        if: ${{ contains(github.event.review.body, 'Resubmit for Quick Review' }}
+        if: ${{ contains(github.event.review.body, 'Resubmit for Quick Review') }}
         with:
           script: |
             console.log('Hello');
 
       - name: 'Pass'
         uses: 'actions/github-script@v6'
-        if: ${{ contains(github.event.review.body, 'Pass' }}
+        if: ${{ contains(github.event.review.body, 'Pass') }}
         with:
           script: |
             console.log('Hello');

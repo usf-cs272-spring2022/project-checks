@@ -11,17 +11,16 @@ jobs:
     name: 'Check Request'
     runs-on: 'ubuntu-latest'
 
-    env:
-      EVENT_OUTPUT: ${{ github.event }}
-
     steps:
       - name: 'Startup'
         uses: 'actions/github-script@v6'
         with:
           script: |
+            const event = ${{ toJSON(github.event) }};
+
             github.rest.issues.createComment({owner: context.payload.organization.login, repo: context.payload.repository.name, issue_number: context.payload.pull_request.number, body: `:robot: The GitHub Actions bot is now processing this pull request...${ process.env.RUN_DETAIL}`});
             console.log(context);
-            console.log(process.env.EVENT_OUTPUT);
+            console.log(event);
 
 # TODO Check review
 # When a pull request review is submitted, check the status. If the status was

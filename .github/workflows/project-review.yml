@@ -12,16 +12,12 @@ jobs:
     runs-on: 'ubuntu-latest'
     if: ${{ github.event.review.state == 'approved' && github.event.review.user.login == 'sjengle' }}
 
-    outputs:
-
-
     steps:
       - name: 'Startup'
         uses: 'actions/github-script@v6'
         with:
           script: |
             console.log(context);
-            let error_message = undefined;
 
             github.rest.issues.createComment({
               owner: context.payload.organization.login,

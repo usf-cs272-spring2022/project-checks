@@ -960,7 +960,7 @@ jobs:
             core.exportVariable('ERROR_MESSAGE', `:no_entry: Something went wrong updating the pull request. Reach out to the instructor on Piazza for next steps. ${ process.env.RUN_DETAIL }`);
 
             // get pull request results
-            const results = { html_url: 'hello' }; // {{ steps.create_pull.outputs.result }};
+            const results = {{ steps.create_pull.outputs.result }};
 
             // craft link
             const link = `${ process.env.REVIEW_LINK }&name=${ encodeURIComponent('${{ needs.check_issue.outputs.name }}') }&email=${encodeURIComponent('${{ needs.check_issue.outputs.user }}')}@dons.usfca.edu&a1=${ encodeURIComponent(results.html_url) }`;

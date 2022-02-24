@@ -103,7 +103,7 @@ jobs:
               }
               else {
                 // everything looks good!
-                console.log(parsed.keys());
+                console.log(Object.keys(parsed));
                 core.exportVariable('message', 'Unexpected error.');
                 core.exportVariable('todo', '  - [ ] Reach out to the instructor on Piazza.');
                 return parsed;
@@ -130,7 +130,7 @@ jobs:
           script: |
             const data = ${{ toJSON( steps.parse_json.outputs.result )}};
             console.log(data);
-            console.log(JSON.parse(data).keys());
+            console.log(Object.keys(data));
 
             const message = `:robot: Hi @${ context.actor }, your code review for project ${ data["project"] } has been processed.`;
             console.log(message);

@@ -128,75 +128,8 @@ jobs:
         with:
           script: |
             const data = ${{ toJson( steps.parse_json.outputs.result )}};
+            console.log(data);
 
-            const message = `:robot: Hi @${ github.actor }, your code review for project ${ data.project } has been processed.`;
-            console.log(message);
-
-            let todo = `
-              - [ ] On GitHub, click the "Merge" button to merge this pull request #${ context.payload.pull_request.number } into the `main` branch.
-
-              - [ ] In your Eclipse workspace, use the "Team" » "Pull" option to pull in the changes made to your `main` branch.
-
-              - [ ] Fix the \`TODO\` comments in the code, then commit and push those changes to GitHub. Reach out on Piazza or office hours if any of the comments are unclear.
-
-              - [ ] Create a new \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
-
-            Once the above is complete, use the "Request Code Review Appointment" issue template to request your next code review appointment. Your next appointment should be between `5` to `10` days from today to avoid penalties.
-            `;
-
-            // TODO Request grade
-            // TODO Normal vs quick review
-
-            core.exportVariable('message', message);
-            core.exportVariable('todo', todo);
-
-      - name: 'Pass'
-        uses: 'actions/github-script@v6'
-        if: ${{ contains(github.event.review.body, 'Pass') }}
-        with:
-          script: |
-            const data = ${{ toJson( steps.parse_json.outputs.result )}};
-
-            const message = `:tada: Congratulations @${ github.actor }, you **passed** code review for project ${ data.project }---nice work!`;
-            console.log(message);
-
-            const todo = `
-              - [ ] On GitHub, click the "Merge" button to merge this pull request #${ context.payload.pull_request.number } into the `main` branch.
-
-              - [ ] In your Eclipse workspace, use the "Team" » "Pull" option to pull in the changes made to your `main` branch.
-
-              - [ ] Fix any remaining \`TODO\` comments in the code, then commit and push those changes to GitHub.
-
-              - [ ] Create a final \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
-
-              - [ ] Use the "Request Project Final Release Grade" issue template to request your grade.
-
-            Once the above is complete, you are ready to begin or merge the functionality for project ${ data.project + 1} into the `main` branch!
-            `;
-
-            core.exportVariable('message', message);
-            core.exportVariable('todo', todo);
-
-      - name: 'Update'
-        uses: 'actions/github-script@v6'
-        if: ${{ !failure() }}
-        with:
-          script: |
-            const body = `${ process.env.message } Your next steps are:
-
-            ${ process.env.todo }
-
-            ${ process.env.RUN_DETAIL}
-            `;
-
-            console.log(body);
-
-            github.rest.issues.createComment({
-              owner: context.payload.organization.login,
-              repo: context.payload.repository.name,
-              issue_number: context.payload.pull_request.number,
-              body: body
-            });
 
 # TODO Check review
 # When a pull request review is submitted, check the status. If the status was

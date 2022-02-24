@@ -123,16 +123,18 @@ jobs:
               body: `:robot: ${ error_message } ${ process.env.RUN_DETAIL}`
             });
 
+            return {};
+
       - name: 'Resubmit'
         uses: 'actions/github-script@v6'
         if: ${{ contains(github.event.review.body, 'Resubmit') }}
         with:
           script: |
-            const data = ${{ toJSON( steps.parse_json.outputs.result )}};
-            console.log(data);
-            console.log(Object.keys(data));
+            const config = ${{ toJSON( steps.parse_json.outputs.result ) }};
+            console.log(config);
+            console.log(Object.keys(config));
 
-            const message = `:robot: Hi @${ context.actor }, your code review for project ${ data["project"] } has been processed.`;
+            const message = `:robot: Hi @${ context.actor }, your code review for project ${ config.project } has been processed.`;
             console.log(message);
 
 

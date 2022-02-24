@@ -178,9 +178,7 @@ jobs:
         with:
           script: |
             const body = `${ process.env.message } Your next steps are:
-
             ${ process.env.todo }
-
             ${ process.env.RUN_DETAIL}
             `;
 

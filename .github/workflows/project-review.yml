@@ -144,7 +144,7 @@ jobs:
 
               - [ ] Create a new \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
 
-              Once the above is complete, use the "Request Code Review Appointment" issue template to request your next code review appointment. Your next appointment should be between \`5\` to \`10\` days from today to avoid penalties.
+              Once the above is complete, use the [Request Code Review Appointment](${ context.payload.repository.html_url }/issues/new?assignees=&labels=review-request&template=request-code-review-appointment.md&title=Request+Code+Review+Appointment+v0.0.0) issue template to request your next code review appointment. Your next appointment should be between \`5\` to \`10\` days from today to avoid penalties.
             `;
 
             // TODO Request grade
@@ -172,9 +172,9 @@ jobs:
 
               - [ ] Create a final \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
 
-              - [ ] Use the "Request Project Final Release Grade" issue template to request your grade.
+              - [ ] Use the [Request Project Final Release Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-release&template=request-project-final-release-grade.md&title=Request+Final+Release+Grade+v0.0.0) issue template to request your grade.
 
-            Once the above is complete, you are ready to begin or merge the functionality for project ${ data.project + 1} into the \`main\` branch!
+            Once the above is complete, you are ready to begin or merge the functionality for project ${ data.project + 1} into the \`main\` branch! You do *not* need to request another code review for this project.
             `;
 
             core.exportVariable('message', message);
@@ -187,8 +187,7 @@ jobs:
           script: |
             const body = `${ process.env.message } Your next steps are:
             ${ process.env.todo }
-            ${ process.env.RUN_DETAIL}
-            `;
+            ${ process.env.RUN_DETAIL}`;
 
             console.log(body);
 

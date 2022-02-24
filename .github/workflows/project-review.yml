@@ -130,7 +130,8 @@ jobs:
         if: ${{ contains(github.event.review.body, 'Resubmit') }}
         with:
           script: |
-            const config = ${{ toJSON( steps.parse_json.outputs.result ) }};
+            const config = ${{ steps.parse_json.outputs.result }};
+            console.log(typeof config);
             console.log(config);
             console.log(Object.keys(config));
 

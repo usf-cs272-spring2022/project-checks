@@ -127,7 +127,7 @@ jobs:
         if: ${{ contains(github.event.review.body, 'Resubmit') }}
         with:
           script: |
-            const data = ${{ toJson( needs.check_request.outputs.result )}};
+            const data = ${{ toJson( steps.parse_json.outputs.result )}};
 
             const message = `:robot: Hi @${ github.actor }, your code review for project ${ data.project } has been processed.`;
             console.log(message);
@@ -155,7 +155,7 @@ jobs:
         if: ${{ contains(github.event.review.body, 'Pass') }}
         with:
           script: |
-            const data = ${{ toJson( needs.check_request.outputs.result )}};
+            const data = ${{ toJson( steps.parse_json.outputs.result )}};
 
             const message = `:tada: Congratulations @${ github.actor }, you **passed** code review for project ${ data.project }---nice work!`;
             console.log(message);

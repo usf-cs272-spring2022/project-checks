@@ -32,6 +32,15 @@ jobs:
     needs: ['check_request']
 
     steps:
+      - name: 'Setup'
+        uses: 'actions/github-script@v6'
+        with:
+          script: |
+            // set default value in case there is something weird
+            const label = 'error';
+            core.exportVariable('label', label);
+            console.log('label:', label);
+
       - name: 'Code'
         uses: 'actions/github-script@v6'
         if: ${{ contains(github.event.review.body, 'Resubmit for Code Review') }}
@@ -70,6 +79,65 @@ jobs:
               issue_number: context.payload.pull_request.number,
               labels: [process.env.label]
             });
+
+update_request:
+  name: 'Update Request'
+  runs-on: 'ubuntu-latest'
+  needs: ['check_request']
+
+  steps:
+    - name: 'Parse'
+      id: 'parse-json'
+      uses: 'actions/github-script@v6'
+      with:
+        script: |
+          try {
+            const pattern = /```json([^`]+)```/;
+            const matched = body.match(pattern);
+
+            const parsed = JSON.parse(matched[1]);
+            console.log(`Parsed: ${JSON.stringify(parsed)}`);
+
+            if(!parsed.hasOwnProperty('project') || !parsed.hasOwnProperty('reviews')) {
+              error_message = `The JSON data has an unexpected format. Please consult with the instructor on Piazza.`;
+            }
+            else {
+              // everything looks good!
+              core.exportVariable('message', 'Unexpected error. Reach out to the instructor on Piazza.');
+              return parsed;
+            }
+          }
+          catch (error) {
+            error_message = `Unable to parse pull request body as JSON. Error: ${error.message}`;
+          }
+
+          // only errors make it this far
+          core.setFailed(error_message);
+
+          github.rest.issues.createComment({owner: context.payload.organization.login, repo: context.payload.repository.name, issue_number: context.payload.pull_request.number, body: `:robot: ${ error_message } ${ process.env.RUN_DETAIL}`});
+
+    - name: 'Resubmit'
+      uses: 'actions/github-script@v6'
+      if: ${{ contains(github.event.review.body, 'Resubmit') }}
+      with:
+        script: |
+          const data = ${{ toJson( needs.check_request.outputs. )}}
+          core.exportVariable('message', 'Resubmit instructions');
+
+    - name: 'Pass'
+      uses: 'actions/github-script@v6'
+      if: ${{ contains(github.event.review.body, 'Pass') }}
+      with:
+        script: |
+          const data = ${{ toJson( needs.check_request.outputs. )}}
+          core.exportVariable('message', 'Pass instructions');
+
+    - name: 'Update'
+      uses: 'actions/github-script@v6'
+      if: ${{ !failure() }}
+      with:
+        script: |
+          console.log(process.env.message);
 
 # TODO Check review
 # When a pull request review is submitted, check the status. If the status was

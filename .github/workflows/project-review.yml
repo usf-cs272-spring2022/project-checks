@@ -103,7 +103,6 @@ jobs:
               }
               else {
                 // everything looks good!
-                console.log(Object.keys(parsed));
                 core.exportVariable('message', 'Unexpected error.');
                 core.exportVariable('todo', '  - [ ] Reach out to the instructor on Piazza.');
                 return parsed;
@@ -130,24 +129,37 @@ jobs:
         if: ${{ contains(github.event.review.body, 'Resubmit') }}
         with:
           script: |
-            const config = ${{ steps.parse_json.outputs.result }};
-            console.log(typeof config);
-            console.log(config);
-            console.log(Object.keys(config));
+            const data = ${{ steps.parse_json.outputs.result }};
 
-            const message = `:robot: Hi @${ context.actor }, your code review for project ${ config.project } has been processed.`;
+            const message = `:robot: Hi @${ context.actor }, your code review for project ${ data.project } has been processed.`;
             console.log(message);
 
+            let todo = `
+              - [ ] On GitHub, click the "Merge" button to merge this pull request #${ context.payload.pull_request.number } into the `main` branch.
 
+              - [ ] In your Eclipse workspace, use the "Team" » "Pull" option to pull in the changes made to your `main` branch.
+
+              - [ ] Fix the \`TODO\` comments in the code, then commit and push those changes to GitHub. Reach out on Piazza or office hours if any of the comments are unclear.
+
+              - [ ] Create a new \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
+
+            Once the above is complete, use the "Request Code Review Appointment" issue template to request your next code review appointment. Your next appointment should be between `5` to `10` days from today to avoid penalties.
+            `;
+
+            // TODO Request grade
+            // TODO Normal vs quick review
+
+            core.exportVariable('message', message);
+            core.exportVariable('todo', todo);
 
       - name: 'Pass'
         uses: 'actions/github-script@v6'
         if: ${{ contains(github.event.review.body, 'Pass') }}
         with:
           script: |
-            const data = ${{ toJSON( steps.parse_json.outputs.result )}};
+            const data = ${{ steps.parse_json.outputs.result }};
 
-            const message = `:tada: Congratulations @${ github.actor }, you **passed** code review for project ${ data.project }---nice work!`;
+            const message = `:tada: Congratulations @${ context.actor }, you **passed** code review for project ${ data.project }---nice work!`;
             console.log(message);
 
             const todo = `

@@ -93,7 +93,7 @@ jobs:
           script: |
             try {
               const pattern = /```json([^`]+)```/;
-              const matched = body.match(pattern);
+              const matched = context.payload.pull_request.body.match(pattern);
 
               const parsed = JSON.parse(matched[1]);
               console.log(`Parsed: ${JSON.stringify(parsed)}`);

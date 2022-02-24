@@ -87,7 +87,7 @@ jobs:
 
     steps:
       - name: 'Parse'
-        id: 'parse-json'
+        id: 'parse_json'
         uses: 'actions/github-script@v6'
         with:
           script: |

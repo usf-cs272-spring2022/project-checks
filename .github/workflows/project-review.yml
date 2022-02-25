@@ -4,7 +4,7 @@ on:
   workflow_call:
 
 env:
-  RUN_DETAIL: ":octocat: @${{ github.actor }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+  RUN_DETAIL: ":octocat: @${{ github.event.pull_request.assignee.login }} see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
 
 jobs:
   check_request:
@@ -139,7 +139,7 @@ jobs:
             const data = ${{ steps.parse_json.outputs.result }};
             console.log(data);
 
-            const message = `:robot: Hi @${ context.actor }, your code review for project ${ data.project } has been processed.`;
+            const message = `:robot: Hi @${ context.payload.pull_request.assignee.login }, your code review for project ${ data.project } has been processed.`;
             console.log(message);
 
             let todo = `
@@ -171,7 +171,7 @@ jobs:
           script: |
             const data = ${{ steps.parse_json.outputs.result }};
 
-            const message = `:tada: Congratulations @${ context.actor }, you **passed** code review for project ${ data.project }---nice work!`;
+            const message = `:tada: Congratulations @${ context.payload.pull_request.assignee.login }, you **passed** code review for project ${ data.project }---nice work!`;
             console.log(message);
 
             const todo = `

@@ -157,7 +157,8 @@ jobs:
 
             if (context.payload.review.body.includes('Quick Review')) {
               todo = `${todo}
-            :stopwatch: *FYI: You have been pre-approved for a **quick review** for your next code review appointment. This will be a shorter 10 minute appointment instead of the normal 20 minutes.*`;
+            :stopwatch: *FYI: You have been pre-approved for a **quick review** for your next code review appointment. This will be a shorter 10 minute appointment instead of the normal 20 minutes.*
+            `;
             }
 
             core.exportVariable('message', message);

@@ -19,11 +19,15 @@ jobs:
           script: |
             console.log(context);
 
+            const body = `:robot: The GitHub Actions bot is now processing this pull request...
+
+            ${ process.env.RUN_DETAIL}`;
+
             github.rest.issues.createComment({
               owner: context.payload.organization.login,
               repo: context.payload.repository.name,
               issue_number: context.payload.pull_request.number,
-              body: `:robot: The GitHub Actions bot is now processing this pull request...${ process.env.RUN_DETAIL}`
+              body: body
             });
 
   update_labels:

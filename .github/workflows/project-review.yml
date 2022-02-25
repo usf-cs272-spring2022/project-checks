@@ -144,19 +144,15 @@ jobs:
 
             let todo = `
               - [ ] On GitHub, click the "Merge" button to merge this pull request #${ context.payload.pull_request.number } into the \`main\` branch.
-
               - [ ] In your Eclipse workspace, use the "Team" » "Pull" option to pull in the changes made to your \`main\` branch.
-
               - [ ] Fix the \`TODO\` comments in the code, then commit and push those changes to GitHub. Reach out on Piazza or office hours if any of the comments are unclear.
-
               - [ ] Create a new \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
 
               Once the above is complete, use the [Request Code Review Appointment](${ context.payload.repository.html_url }/issues/new?assignees=&labels=review-request&template=request-code-review-appointment.md&title=Request+Code+Review+Appointment+v${ data.project }.${ data.reviews + 1 }.0) issue template to request your next code review appointment. Your next appointment should be between \`5\` to \`10\` days from today to avoid penalties.
             `;
 
             if (data.reviews < 2) {
-              todo = `
-              - [ ] Use the [Request Project Review Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-review&template=request-project-review-grade.md&title=Request+Review+Grade+${ data.release }) issue template to request your code review grade for this appointment.
+              todo = `  - [ ] Use the [Request Project Review Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-review&template=request-project-review-grade.md&title=Request+Review+Grade+${ data.release }) issue template to request your code review grade for this appointment.
               ${todo}`;
             }
 
@@ -182,13 +178,9 @@ jobs:
 
             const todo = `
               - [ ] On GitHub, click the "Merge" button to merge this pull request #${ context.payload.pull_request.number } into the \`main\` branch.
-
               - [ ] In your Eclipse workspace, use the "Team" » "Pull" option to pull in the changes made to your \`main\` branch.
-
               - [ ] Fix any remaining \`TODO\` comments in the code, then commit and push those changes to GitHub.
-
               - [ ] Create a final \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
-
               - [ ] Use the [Request Project Final Release Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-release&template=request-project-final-release-grade.md&title=Request+Final+Release+Grade+v${ data.project }.${ data.reviews + 1 }.0) issue template to request your grade.
 
             Once the above is complete, you are ready to begin or merge the functionality for project ${ data.project + 1} into the \`main\` branch! You do *not* need to request another code review for this project.

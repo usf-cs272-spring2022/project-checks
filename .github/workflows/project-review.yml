@@ -156,14 +156,14 @@ jobs:
 
             if (data.reviews < 2) {
               todo = `
-                - [ ] Use the [Request Project Review Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-review&template=request-project-review-grade.md&title=Request+Review+Grade+${ data.release }) issue template to request your code review grade for this appointment.
+              - [ ] Use the [Request Project Review Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-review&template=request-project-review-grade.md&title=Request+Review+Grade+${ data.release }) issue template to request your code review grade for this appointment.
               ${todo}`;
             }
 
             if (context.payload.review.body.includes('Quick Review')) {
               todo = `${todo}
 
-              :stopwatch: FYI: You have been pre-approved for a **quick review** for your next code review appointment. This will be a shorter 10 minute appointment instead of the normal 20 minutes.
+              :stopwatch: *FYI: You have been pre-approved for a **quick review** for your next code review appointment. This will be a shorter 10 minute appointment instead of the normal 20 minutes.*
               `;
             }
 

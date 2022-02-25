@@ -103,8 +103,11 @@ jobs:
               }
               else {
                 // everything looks good!
+                const todo = `
+                  - [ ] Reach out to the instructor on Piazza.
+                `;
                 core.exportVariable('message', 'Unexpected error.');
-                core.exportVariable('todo', '  - [ ] Reach out to the instructor on Piazza.');
+                core.exportVariable('todo', todo);
                 return parsed;
               }
             }
@@ -144,11 +147,21 @@ jobs:
 
               - [ ] Create a new \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
 
-              Once the above is complete, use the [Request Code Review Appointment](${ context.payload.repository.html_url }/issues/new?assignees=&labels=review-request&template=request-code-review-appointment.md&title=Request+Code+Review+Appointment+v0.0.0) issue template to request your next code review appointment. Your next appointment should be between \`5\` to \`10\` days from today to avoid penalties.
+              Once the above is complete, use the [Request Code Review Appointment](${ context.payload.repository.html_url }/issues/new?assignees=&labels=review-request&template=request-code-review-appointment.md&title=Request+Code+Review+Appointment+v${ data.project }.${ data.reviews + 1 }.0) issue template to request your next code review appointment. Your next appointment should be between \`5\` to \`10\` days from today to avoid penalties.
             `;
 
-            // TODO Request grade
-            // TODO Normal vs quick review
+            if (data.reviews < 2) {
+              todo = `
+                - [ ] Use the [Request Project Review Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-review&template=request-project-review-grade.md&title=Request+Review+Grade+${ data.release }) issue template to request your code review grade for this appointment.
+              ${todo}`;
+            }
+
+            if (context.payload.review.body.contains('Quick Review')) {
+              todo = `${todo}
+
+              :stopwatch: FYI: You have been pre-approved for a **quick review** for your next code review appointment. This will be a shorter 10 minute appointment instead of the normal 20 minutes.
+              `;
+            }
 
             core.exportVariable('message', message);
             core.exportVariable('todo', todo);
@@ -172,7 +185,7 @@ jobs:
 
               - [ ] Create a final \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
 
-              - [ ] Use the [Request Project Final Release Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-release&template=request-project-final-release-grade.md&title=Request+Final+Release+Grade+v0.0.0) issue template to request your grade.
+              - [ ] Use the [Request Project Final Release Grade](${ context.payload.repository.html_url }/issues/new?assignees=&labels=grade-release&template=request-project-final-release-grade.md&title=Request+Final+Release+Grade+v${ data.project }.${ data.reviews + 1 }.0) issue template to request your grade.
 
             Once the above is complete, you are ready to begin or merge the functionality for project ${ data.project + 1} into the \`main\` branch! You do *not* need to request another code review for this project.
             `;

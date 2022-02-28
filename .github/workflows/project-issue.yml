@@ -547,7 +547,7 @@ jobs:
                 // set to most recent code review
                 pull.review = reviewed[reviewed.length - 1];
                 approved.push(pull);
-                console.log(`Approved at: ${ pull.review.submittted_at }`);
+                console.log(`Approved at: ${ pull.review.submitted_at }`);
               }
             }
 

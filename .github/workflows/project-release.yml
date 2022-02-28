@@ -145,7 +145,7 @@ jobs:
             }
             else {
               // check if eligibile to submit projects 2, 3, or 4
-              const past = pulls.data.filter(pull => pull.milestone.title == `Project ${project_num - 1}`);
+              const past = pulls.data.filter(pull => pull.milestone && pull.milestone.title == `Project ${project_num - 1}`);
               console.log(`Found ${past.length} pull requests for project ${project_num - 1}.`);
 
               // check if any past pull requests were approved
@@ -233,8 +233,6 @@ jobs:
           TEST_SHA=$(git ls-remote --refs https://github.com/${{ github.repository_owner }}/${TEST_PATH}.git main | head -1 | cut -f 1)
           echo "Test SHA: ${TEST_SHA}"
           echo "::set-output name=test_cache::${TEST_PATH}-${TEST_SHA}"
-
-          exit 1;
 
   check_compile:
     name: 'Code Compiles'

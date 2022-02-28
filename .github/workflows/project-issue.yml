@@ -610,7 +610,7 @@ jobs:
 
               if (!passed) {
                 // this is what was approved next, what this review was... check title instead!
-                const quick = last_pull.labels.some(label => label.name == 'review-resubmit-quick');
+                const quick = last_pull.title.startsWith(`Quick Review v`);
                 last_review.last_type = quick ? 'Quick' : 'Code';
               }
               else if (process.env.TYPE == process.env.REQUEST_REVIEW) {

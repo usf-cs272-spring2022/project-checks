@@ -555,6 +555,7 @@ jobs:
             console.log(`Loaded ${ pulls.length } pull requests.`);
 
             let approved = [];
+            let last_pull = undefined;
 
             // fetch reviews and keep only approved pulls
             for (const pull of pulls) {
@@ -598,18 +599,26 @@ jobs:
 
             // set values of last approved pull request
             if (approved.length > 0) {
-              const last = approved[approved.length - 1];
-              last_review.last_pull = last.number;
+              last_pull = approved[approved.length - 1];
+              last_review.last_pull = last_pull.number;
 
-              last_review.last_date = last.approved.toISO();
-              last_review.last_text = last.approved.toLocaleString(DateTime.DATE_HUGE);
+              last_review.last_date = last_pull.approved.toISO();
+              last_review.last_text = last_pull.approved.toLocaleString(DateTime.DATE_HUGE);
 
-              const passed = last.labels.some(label => label.name == 'review-passed');
+              const passed = last_pull.labels.some(label => label.name == 'review-passed');
               last_review.last_pass = passed;
 
               if (!passed) {
-                const quick = last.labels.some(label => label.name == 'review-resubmit-quick');
+                // this is what was approved next, what this review was... check title instead!
+                const quick = last_pull.labels.some(label => label.name == 'review-resubmit-quick');
                 last_review.last_type = quick ? 'Quick' : 'Code';
+              }
+              else if (process.env.TYPE == process.env.REQUEST_REVIEW) {
+                // should not request another review if passed
+                const error_message = `You passed your last code review for project ${ project } in pull request #${ last_pull.number }. You do not need any more code review appointments for this project.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
               }
             }
 
@@ -624,8 +633,8 @@ jobs:
             }
 
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {
-              // if this is first code review
               if (reviews == 0) {
+                // if this is first code review, use deadline
                 const today = DateTime.now().setZone(zone);
                 const deadline = process.env[`PROJECT_${ project }_REVIEW`];
                 console.log(`Deadline: ${deadline}`);
@@ -638,6 +647,21 @@ jobs:
                 next_review.next_late = converted.toLocaleString(DateTime.DATE_HUGE);
                 next_review.next_late_iso = converted.toISO();
                 next_review.next_link = `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;
+              }
+              else {
+                // else use since last review
+                const min_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MIN });
+                const max_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MAX });
+                console.log(`Min: ${ min_date.toISO() }, Max: ${ max_date.toISO() }`);
+
+                next_review.next_date = min_date.toLocaleString(DateTime.DATE_HUGE);
+                next_review.next_late = max_date.toLocaleString(DateTime.DATE_HUGE);
+                next_review.next_late_iso = max_date.toISO();
+
+                // set next type
+                const quick = last_pull.labels.some(label => label.name == 'review-resubmit-quick');
+                next_review.next_type = quick ? 'Quick' : 'Code';
+                `https://calendly.com/sjengle/${ next_review.next_type.toLowerCase() }-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;
               }
             }
 

@@ -383,8 +383,8 @@ jobs:
     # TODO Fix grade release logic
 
     steps:
-      - name: 'Check eligibility'
-        id: 'check_eligible'
+      - name: 'Check issues'
+        id: 'check_issues'
         uses: 'actions/github-script@v6'
 
         env:
@@ -509,6 +509,53 @@ jobs:
             // only keep pull requests
             return pulls;
 
+      - name: 'Check pull requests'
+        id: 'check_pulls'
+        uses: 'actions/github-script@v6'
+        with:
+          script: |
+            // get pull requests to process
+            const pulls = ${{ steps.check_issues.outputs.result }};
+            console.log(`Loaded ${ pulls.length } pull requests.`);
+
+            let approved = [];
+
+            // fetch reviews and keep only approved pulls
+            for (const pull of pulls) {
+              const found = await github.rest.pulls.listReviews({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: pull.number,
+                per_page: 100
+              });
+
+              core.startGroup(`Found reviews for pull ${ pull.number }...`);
+              console.log(found);
+              core.endGroup();
+
+              if (found.status != 200) {
+                const error_message = `Unable to fetch reviews for pull request ${ pull.number } to verify approval.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+
+              const reviewed = found.data.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
+              console.log(`Found ${ reviewed.length } instructor approvals for pull ${ pull.number }.`);
+
+              if (reviewed.length > 0) {
+                // set to most recent code review
+                pull.review = reviewed[reviewed.length - 1];
+                approved.push(pull);
+                console.log(`Approved at: ${ pull.review.submittted_at }`);
+              }
+            }
+
+            // TODO Check for failure conditions
+
+            console.log(`Found ${ approved.length } approved pull requests.`);
+            return approved;
+
       - name: 'Setup node'
         uses: 'actions/setup-node@v2'
         with:
@@ -517,8 +564,8 @@ jobs:
       - name: 'Install luxon'
         run: npm install luxon
 
-      - name: 'Check pull requests'
-        id: 'check_pulls'
+      - name: 'Check dates'
+        id: 'check_dates'
         uses: 'actions/github-script@v6'
 
         env:
@@ -533,144 +580,30 @@ jobs:
             const project = parseInt(process.env.PROJECT_NUM);
             const reviews = parseInt(process.env.REVIEWS_NUM);
 
-            // set default values
-            const next_review = {
-              'next_type': 'N/A', // code or quick
-              'next_date': 'N/A', // earliest date as text
-              'next_late': 'N/A', // latest date as text
-              'next_late_iso': 'N/A', // latest date as ISO
-              'next_link': '#'    // link for appointment
+            const this_review = {
+              'pull': '',  // pull request, empty if requesting review or release grade
+              'type': '',  // quick or code, empty if release grade
+              'link': '#', // appointment link, empty if requesting grade
+              'held_date': '', // date submitted (if requesting grade) or earliest eligible (if requesting review)
+              'held_text': '', // in full text format instead of ISO
+              'late_date': '', // deadline in ISO format
+              'late_text': '', // in full text format instead of ISO
             };
 
             const last_review = {
-              'last_pull': 'N/A', // pull request number
-              'last_type': 'N/A', // code or quick
-              'last_date': 'N/A', // date as ISO
-              'last_text': 'N/A', // date as text
-              'last_pass': 'N/A'  // true if passed
+              'pull': '',  // pull request, empty if no code reviews
+              'type': '',  // quick or code, empty if no code reviews
+              'pass': '',  // whether passed, empty if no code reviews or did not pass
+              'held_date': '', // date approved, empty if no code review
+              'held_text': '', // in full text format instead of ISO
             };
 
-            // get pull requests to process
-            const pulls = ${{ steps.check_eligible.outputs.result }};
-            console.log(`Loaded ${ pulls.length } pull requests.`);
-
-            let approved = [];
-            let last_pull = undefined;
-
-            // fetch reviews and keep only approved pulls
-            for (const pull of pulls) {
-              const found = await github.rest.pulls.listReviews({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                pull_number: pull.number,
-                per_page: 100
-              });
-
-              core.startGroup('Found reviews...');
-              console.log(found);
-              core.endGroup();
-
-              if (found.status != 200) {
-                const error_message = `Unable to fetch reviews for pull request ${ pull.number } to verify approval.`;
-                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-                core.setFailed(error_message);
-                return;
-              }
-
-              const reviewed = found.data.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
-
-              console.log(`Found ${ reviewed.length } instructor approvals.`);
-
-              if (reviewed.length > 0) {
-                // set to most recent code review
-                const last = reviewed[reviewed.length - 1];
-                pull.approved = DateTime.fromISO(last.submitted_at, { zone: zone });
-                console.log(`Approved at: ${ pull.approved.toISO() }`);
-                approved.push(pull);
-              }
-            }
-
-            // reverse sort
-            approved.sort((a, b) => a.approved < b.approved ? -1 : a.approved > b.approved ? 1 : 0);
+            const approved = ${{ steps.check_pulls.outputs.result }};
+            console.log(`Loaded ${ approved.length } pull requests.`);
 
             core.startGroup('Found approved...');
             console.log(approved);
             core.endGroup();
-
-            // set values of last approved pull request
-            if (approved.length > 0) {
-              last_pull = approved[approved.length - 1];
-              last_review.last_pull = last_pull.number;
-
-              last_review.last_date = last_pull.approved.toISO();
-              last_review.last_text = last_pull.approved.toLocaleString(DateTime.DATE_HUGE);
-
-              const passed = last_pull.labels.some(label => label.name == 'review-passed');
-              last_review.last_pass = passed;
-
-              if (!passed) {
-                // this is what was approved next, what this review was... check title instead!
-                const quick = last_pull.title.startsWith(`Quick Review v`);
-                last_review.last_type = quick ? 'Quick' : 'Code';
-              }
-              else if (process.env.TYPE == process.env.REQUEST_REVIEW) {
-                // should not request another review if passed
-                const error_message = `You passed your last code review for project ${ project } in pull request #${ last_pull.number }. You do not need any more code review appointments for this project.`;
-                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
-                core.setFailed(error_message);
-                return;
-              }
-            }
-
-            // set next dates
-            if (last_pull != undefined) {
-              const min_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MIN });
-              const max_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MAX });
-              console.log(`Min: ${ min_date.toISO() }, Max: ${ max_date.toISO() }`);
-
-              next_review.next_date = min_date.toLocaleString(DateTime.DATE_HUGE);
-              next_review.next_late = max_date.toLocaleString(DateTime.DATE_HUGE);
-              next_review.next_late_iso = max_date.toISO();
-            }
-            else {
-              // use today as minimum date and deadline as next
-              const today = DateTime.now().setZone(zone);
-              const deadline = process.env[`PROJECT_${ project }_REVIEW`];
-              console.log(`Deadline: ${deadline}`);
-
-              // something is converting the dates to non-ISO format
-              const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
-
-              next_review.next_date = today.toLocaleString(DateTime.DATE_HUGE);
-              next_review.next_late = converted.toLocaleString(DateTime.DATE_HUGE);
-              next_review.next_late_iso = converted.toISO();
-            }
-
-            // set other values of next pull request
-            if (process.env.TYPE == process.env.REQUEST_REVIEW) {
-              if (reviews == 0) {
-                next_review.next_type = 'Code';
-                next_review.next_link = `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;
-              }
-              else {
-                const quick = last_pull.labels.some(label => label.name == 'review-resubmit-quick');
-                next_review.next_type = quick ? 'Quick' : 'Code';
-                `https://calendly.com/sjengle/${ next_review.next_type.toLowerCase() }-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;
-              }
-            }
-
-            // set calculated values
-            for (const output in next_review) {
-              core.setOutput(output, next_review[output]);
-            }
-
-            console.log(next_review);
-
-            for (const output in last_review) {
-              core.setOutput(output, last_review[output]);
-            }
-
-            console.log(last_review);
 
       - name: 'Check status'
         id: 'check_status'

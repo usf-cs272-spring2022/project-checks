@@ -540,7 +540,7 @@ jobs:
 
             // fetch reviews and keep only approved pulls
             for (const pull of pulls) {
-              const reviews = await github.rest.issues.listReviews({
+              const reviews = await github.rest.pulls.listReviews({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pull.number,

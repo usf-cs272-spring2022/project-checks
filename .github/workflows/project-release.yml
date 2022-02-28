@@ -209,10 +209,10 @@ jobs:
               }
 
               // look for an approved review from the instructor
-              const approved = reviews.data.find(review => review.user.login == "sjengle" && review.state == "APPROVED");
+              const found = reviews.data.find(review => review.user.login == "sjengle" && review.state == "APPROVED");
 
-              if (approved != undefined) {
-                console.log(`Pull request ${pull.number} was approved by ${approved.user.login} on ${approved.submitted_at}.`);
+              if (found != undefined) {
+                console.log(`Pull request ${pull.number} was approved by ${found.user.login} on ${found.submitted_at}.`);
                 approved++;
               }
             }

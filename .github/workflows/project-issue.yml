@@ -536,7 +536,7 @@ jobs:
             const pulls = ${{ steps.check_eligible.outputs.result }};
             console.log(`Loaded ${ pulls.length } pull requests.`);
 
-            const approved = [];
+            let approved = [];
 
             // fetch reviews and keep only approved pulls
             for (const pull of pulls) {

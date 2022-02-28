@@ -434,6 +434,7 @@ jobs:
 
             // split into issues versus pull requests
             for (const item of passing) {
+              console.log(item);
               if (item.pull_request != undefined) {
                 pulls.push[item];
               }

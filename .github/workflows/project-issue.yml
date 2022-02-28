@@ -558,7 +558,7 @@ jobs:
                 return;
               }
 
-              const reviewed = reviews.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
+              const reviewed = reviews.data.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
 
               if (reviewed.length > 1) {
                 // set to most recent code review

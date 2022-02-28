@@ -122,6 +122,7 @@ jobs:
             const pulls = await github.rest.pulls.list({
               owner: context.payload.organization.login,
               repo: context.payload.repository.name,
+              state: 'all',
               sort: 'created',
               direction: 'desc',
               per_page: 100
@@ -131,6 +132,8 @@ jobs:
               core.setFailed(`Unable to fetch pull requests (status: ${pulls.status}). Check https://www.githubstatus.com/ before re-running this action.`);
               return;
             }
+
+            console.log(pulls);
 
             console.log(`Found ${pulls.data.length} pull requests total.`);
 
@@ -232,6 +235,8 @@ jobs:
           TEST_SHA=$(git ls-remote --refs https://github.com/${{ github.repository_owner }}/${TEST_PATH}.git main | head -1 | cut -f 1)
           echo "Test SHA: ${TEST_SHA}"
           echo "::set-output name=test_cache::${TEST_PATH}-${TEST_SHA}"
+
+          exit 1;
 
   check_compile:
     name: 'Code Compiles'

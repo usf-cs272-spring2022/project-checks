@@ -52,7 +52,7 @@ jobs:
         uses: 'actions/github-script@v6'
         with:
           script: |
-            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
+            // github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
             console.log(context);
 
       - name: 'Check issue labels'

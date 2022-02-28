@@ -514,8 +514,9 @@ jobs:
               // otherwise lookup past code review information
               const issues = ${{ toJSON( steps.check_eligible.outputs.result ) }};
               const pulls = issues.filter(issue => issue.pull_request != undefined);
+              console.log(pulls);
 
-              // const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
+              const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
               // TODO Continue here
             }
 

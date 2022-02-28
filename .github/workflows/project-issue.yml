@@ -533,6 +533,20 @@ jobs:
             const project = parseInt(process.env.PROJECT_NUM);
             const reviews = parseInt(process.env.REVIEWS_NUM);
 
+            // set default values
+            core.exportVariable('next_type', 'N/A');
+            core.exportVariable('next_link', '#');
+
+            core.exportVariable('next_date', 'N/A');
+            core.exportVariable('next_late', 'N/A');
+
+            core.exportVariable('last_pull', 'N/A');
+            core.exportVariable('last_type', 'N/A');
+            core.exportVariable('last_date', 'N/A');
+            core.exportVariable('last_text', 'N/A');
+            core.exportVariable('last_pass', 'false');
+
+            // get pull requests to process
             const pulls = ${{ steps.check_eligible.outputs.result }};
             console.log(`Loaded ${ pulls.length } pull requests.`);
 
@@ -562,31 +576,39 @@ jobs:
 
               if (reviewed.length > 1) {
                 // set to most recent code review
-                pull.approved = approved[approved.length - 1];
+                const last = reviewed[reviewed.length - 1];
+                pull.approved = DateTime.fromISO(last.submitted_at, { zone: zone });
                 approved.push(pull);
               }
             }
 
+            // reverse sort
+            approved.sort((a, b) => a.approved < b.approved ? -1 : a.approved > b.approved ? 1 : 0);
             console.log(approved);
 
-            // set default values
-            core.exportVariable('next_type', 'N/A');
-            core.exportVariable('next_date', 'N/A');
-            core.exportVariable('next_late', 'N/A');
-            core.exportVariable('next_link', '#');
+            // set values of last approved pull request
+            if (approved.length > 1) {
+              const last = approved[approved.length - 1];
 
-            core.exportVariable('last_pull', 'N/A');
-            core.exportVariable('last_type', 'N/A');
-            core.exportVariable('last_date', 'N/A');
-            core.exportVariable('last_pass', 'false');
+              core.exportVariable('last_pull', last.number);
+
+              core.exportVariable('last_date', last.approved.toISO());
+              core.exportVariable('last_text', last.approved.toLocaleString(DateTime.DATE_HUGE));
+
+              boolean passed = last.labels.some(label => label.name == 'review-passed');
+              core.exportVariable('last_pass', passed);
+
+              if (!passed) {
+                boolean quick = last.labels.some(label => label.name == 'review-resubmit-quick');
+                core.exportVariable('last_type', quick ? 'Quick' : 'Code');
+              }
+            }
 
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
 
             }
 
             if (process.env.TYPE == process.env.GRADE_RELEASE) {
-              // get last code review and set values
-
               // set next_late to deadline for release
               core.exportVariable('next_late', 'N/A');
             }
@@ -605,11 +627,6 @@ jobs:
                 core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));
                 core.exportVariable('next_late', converted.toLocaleString(DateTime.DATE_HUGE));
                 core.exportVariable('next_link', `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`);
-              }
-              else {
-                // otherwise lookup past code review information
-                // const late = today.plus({ days: parseInt(process.env.NEXT_MAX) });
-                // TODO Continue here
               }
             }
 

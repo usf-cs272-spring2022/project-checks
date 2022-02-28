@@ -1060,6 +1060,7 @@ jobs:
     steps:
       - name: 'Check status'
         uses: 'actions/github-script@v6'
+        if: ${{ false }}
         with:
           script: |
             const results = ${{ toJSON(needs) }};

@@ -219,8 +219,6 @@ jobs:
               core.setFailed(`The release version ${release_tag} is for projects with ${reviews_num} approved code reviews. However, ${approved} code reviews were found.`);
             }
 
-      # TODO Test review number logic
-
       - name: 'Generate cache keys'
         id: 'generate_keys'
         run: |

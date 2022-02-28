@@ -535,18 +535,19 @@ jobs:
 
             // set default values
             const next_review = {
-              'next_type': 'N/A',
-              'next_date': 'N/A',
-              'next_late': 'N/A',
-              'next_link': '#'
+              'next_type': 'N/A', // code or quick
+              'next_date': 'N/A', // earliest date as text
+              'next_late': 'N/A', // latest date as text
+              'next_late_iso': 'N/A', // latest date as ISO
+              'next_link': '#'    // link for appointment
             };
 
             const last_review = {
-              'last_pull': 'N/A',
-              'last_type': 'N/A',
-              'last_date': 'N/A',
-              'last_text': 'N/A',
-              'last_pass': 'N/A'
+              'last_pull': 'N/A', // pull request number
+              'last_type': 'N/A', // code or quick
+              'last_date': 'N/A', // date as ISO
+              'last_text': 'N/A', // date as text
+              'last_pass': 'N/A'  // true if passed
             };
 
             // get pull requests to process
@@ -606,6 +607,34 @@ jobs:
               if (!passed) {
                 const quick = last.labels.some(label => label.name == 'review-resubmit-quick');
                 last_review.last_type = quick ? 'Quick' : 'Code';
+              }
+            }
+
+            // set values of next pull request
+            if (process.env.TYPE == process.env.GRADE_REVIEW) {
+
+            }
+
+            if (process.env.TYPE == process.env.GRADE_RELEASE) {
+              // set next_late to deadline for release
+              
+            }
+
+            if (process.env.TYPE == process.env.REQUEST_REVIEW) {
+              // if this is first code review
+              if (reviews == 0) {
+                const today = DateTime.now().setZone(zone);
+                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+                console.log(`Deadline: ${deadline}`);
+
+                // something is converting the dates to non-ISO format
+                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
+
+                next_review.next_type = 'Code';
+                next_review.next_date = today.toLocaleString(DateTime.DATE_HUGE);
+                next_review.next_late = converted.toLocaleString(DateTime.DATE_HUGE);
+                next_review.next_late_iso = converted.toISO();
+                next_review.next_link = `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;
               }
             }
 

@@ -985,7 +985,7 @@ jobs:
               "last_review": {
                 "pull": "${ last_pull != "N/A" ? '#' : '' }${ last_pull }",
                 "type": "${ last_type != "N/A" ? last_type.toLowerCase() : last_type }",
-                "date": "${{ needs.check_reviews.outputs.last_date }}",
+                "date": "${{ needs.check_reviews.outputs.last_text }}",
                 "pass": ${{ needs.check_reviews.outputs.last_pass }}
               },
 

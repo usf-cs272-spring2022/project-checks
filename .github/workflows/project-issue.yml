@@ -518,7 +518,7 @@ jobs:
         run: npm install luxon
 
       - name: 'Check pull requests'
-        id: 'pending'
+        id: 'check_pulls'
         uses: 'actions/github-script@v6'
 
         env:
@@ -533,7 +533,7 @@ jobs:
             const project = parseInt(process.env.PROJECT_NUM);
             const reviews = parseInt(process.env.REVIEWS_NUM);
 
-            const pulls = ${{ toJSON( steps.check_eligible.outputs.result ) }};
+            const pulls = ${{ steps.check_eligible.outputs.result }};
             console.log(`Loaded ${ pulls.length } pull requests.`);
 
             const approved = [];

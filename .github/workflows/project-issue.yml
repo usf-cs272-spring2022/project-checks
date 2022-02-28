@@ -591,7 +591,10 @@ jobs:
 
             // reverse sort
             approved.sort((a, b) => a.approved < b.approved ? -1 : a.approved > b.approved ? 1 : 0);
+
+            core.startGroup('Found approved...');
             console.log(approved);
+            core.endGroup();
 
             // set values of last approved pull request
             if (approved.length > 0) {
@@ -617,7 +620,7 @@ jobs:
 
             if (process.env.TYPE == process.env.GRADE_RELEASE) {
               // set next_late to deadline for release
-              
+
             }
 
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {

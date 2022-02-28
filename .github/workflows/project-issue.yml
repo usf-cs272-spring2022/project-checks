@@ -597,11 +597,11 @@ jobs:
               core.exportVariable('last_date', last.approved.toISO());
               core.exportVariable('last_text', last.approved.toLocaleString(DateTime.DATE_HUGE));
 
-              boolean passed = last.labels.some(label => label.name == 'review-passed');
+              const passed = last.labels.some(label => label.name == 'review-passed');
               core.exportVariable('last_pass', passed);
 
               if (!passed) {
-                boolean quick = last.labels.some(label => label.name == 'review-resubmit-quick');
+                const quick = last.labels.some(label => label.name == 'review-resubmit-quick');
                 core.exportVariable('last_type', quick ? 'Quick' : 'Code');
               }
             }

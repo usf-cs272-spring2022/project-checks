@@ -380,6 +380,8 @@ jobs:
       NEXT_MIN: 5  # Minimum number of days before next review (see: eligibility)
       NEXT_MAX: 10 # Maximum number of days before next review (see: late penalty)
 
+    # TODO Fix grade release logic
+
     steps:
       - name: 'Check eligibility'
         id: 'check_eligible'
@@ -400,7 +402,7 @@ jobs:
 
             // use issues (not actions) since instructor can override issue behavior
             // returns issues and pull requests together
-            const issues = await github.rest.issues.listForRepo({
+            const unfiltered = await github.rest.issues.listForRepo({
               owner: context.repo.owner,
               repo: context.repo.repo,
               state: 'all',
@@ -412,64 +414,99 @@ jobs:
             });
 
             core.startGroup('Found issues...');
-            console.log(issues);
+            console.log(unfiltered);
             core.endGroup();
 
-            if (issues.status != 200) {
+            if (unfiltered.status != 200) {
               const error_message = `Unable to fetch closed issues for project ${ project } with the correct assignees, milestone, and labels.`;
               core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
               core.setFailed(error_message);
               return;
             }
 
-            if (process.env.TYPE == process.env.GRADE_REVIEW) {
-              const pulls = issues.data.filter(issue => issue.pull_request != undefined);
+            // filter out issues with errors
+            const passing = unfiltered.data.filter(issue => !issue.labels.some(label => label.name == "error"));
+            console.log(`Removed ${ unfiltered.data.length - passing.length } issues with errors.`);
 
-              console.log(pulls[0].pull_request);
+            const issues = [];
+            const pulls = [];
 
-              core.setFailed('Not yet implemented.');
-              return;
+            // split into issues versus pull requests
+            for (const item of passing) {
+              if (item.pull_request != undefined) {
+                pulls.push[item];
+              }
+              else {
+                issues.push[item];
+              }
             }
 
-            if (process.env.TYPE == process.env.REQUEST_REVIEW && reviews == 0) {
-              const found = issues.data.find(issue => issue.title.startsWith(`Request Test Grade v${ project }`));
+            console.log(`Found ${ issues.length } issues and ${ pulls.length } pull requests.`);
 
-              if (found == undefined) {
-                const error_message = `You must successfully request a project ${ project } test grade before requesting a code review.`;
+            // if code review grade, find all pull requests
+            if (process.env.TYPE == process.env.GRADE_REVIEW) {
+              // make sure at least one pull request for this release
+              const found = pulls.find(issue => issue.title.endsWith(`Review ${ process.env.RELEASE }`);
+
+              if (found != undefined) {
+                const error_message = `You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(error_message);
                 return;
               }
 
-              // only get here if found an issue
-              console.log(`Found issue #${ found.number }: ${ found.title }`);
+              // only get here if found a pull request
+              // will check in other steps if was approved
+              console.log(`Found pull request #${ found.number }: ${ found.title }`);
             }
-            else {
-              const filtered = issues.data.filter(issue => issue.title.startsWith(`Request Code Review v${ project }`));
-              console.log(`Found code review requests: ${ filtered.length == 0 ? '(none)' : filtered.map(issue => issue.title) }`);
 
-              if (process.env.TYPE == process.env.GRADE_RELEASE || reviews > 1) {
-                if (filtered.length < 2) {
-                  const error_message = `You must successfully request your second project ${ project } code review grade before making another request.`;
+            // if requesting code review appointment
+            if (process.env.TYPE == process.env.REQUEST_REVIEW) {
+              if (reviews == 0) {
+                const found = issues.find(issue => issue.title.startsWith(`Request Test Grade v${ project }`));
+
+                if (found == undefined) {
+                  const error_message = `You must successfully request a project ${ project } test grade before requesting a code review.`;
+                  core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                  core.setFailed(error_message);
+                  return;
+                }
+
+                // only get here if found an issue
+                console.log(`Found issue #${ found.number }: ${ found.title }`);
+              }
+              else {
+                const found = issues.filter(issue => issue.title.startsWith(`Request Review Grade v${ project }`));
+
+                console.log(`Found ${ found.length } review grade issues.`);
+
+                if (
+                    (reviews == 1 && found.length < 1) ||
+                    (found.length < 2)
+                ) {
+                  const error_message = `You must successfully request a project ${ project } review grade before requesting another code review.`;
                   core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                   core.setFailed(error_message);
                   return;
                 }
               }
-              else if (reviews == 1 && filtered.length < 1) {
-                const error_message = `You must successfully request your first project ${ project } code review grade before making another request.`;
+            }
+
+            if (process.env.TYPE == process.env.GRADE_RELEASE) {
+              const grades = issues.filter(issue => issue.title.startsWith(`Request Review Grade v${ project }`));
+
+              console.log(`Found ${ grades.length } review grade issues.`);
+
+              if (grades.length < 2) {
+                const error_message = `You must successfully request both project ${ project } review grades before requesting a final release grade.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(error_message);
                 return;
               }
-              else {
-                core.setFailed(`Unexpected request "${ process.env.TYPE }" for release ${ process.env.RELEASE }.`);
-                return;
-              }
             }
 
-            // if made it this far, everythign checks out
-            return issues.data;
+            // only keep pull requests
+            return pulls;
 
       - name: 'Setup node'
         uses: 'actions/setup-node@v2'
@@ -494,6 +531,15 @@ jobs:
 
             const project = parseInt(process.env.PROJECT_NUM);
             const reviews = parseInt(process.env.REVIEWS_NUM);
+
+            // if requesting code review grade
+            // - if first code review use deadline
+            //   else use 10 days from last review
+            // - set submitted to approved pull request date
+
+            // if requesting code review appointment
+            // -if first code review set defaults
+            // -else
 
             // if this is first code review
             if (reviews == 0) {

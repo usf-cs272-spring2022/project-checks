@@ -446,7 +446,7 @@ jobs:
             // if code review grade, find all pull requests
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
               // make sure at least one pull request for this release
-              const found = pulls.find(issue => issue.title.endsWith(`Review ${ process.env.RELEASE }`);
+              const found = pulls.find(issue => issue.title.endsWith(`Review ${ process.env.RELEASE }`));
 
               if (found != undefined) {
                 const error_message = `You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;

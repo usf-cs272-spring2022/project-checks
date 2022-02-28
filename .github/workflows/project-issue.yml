@@ -576,7 +576,7 @@ jobs:
 
               console.log(`Found ${ reviewed.length } instructor approvals.`);
 
-              if (reviewed.length > 1) {
+              if (reviewed.length > 0) {
                 // set to most recent code review
                 const last = reviewed[reviewed.length - 1];
                 pull.approved = DateTime.fromISO(last.submitted_at, { zone: zone });

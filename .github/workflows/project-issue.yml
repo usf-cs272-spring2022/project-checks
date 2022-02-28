@@ -434,12 +434,11 @@ jobs:
 
             // split into issues versus pull requests
             for (const item of passing) {
-              console.log(item);
-              if (item.pull_request != undefined) {
-                pulls.push[item];
+              if (item.hasOwnProperty('pull_request')) {
+                pulls.push(item);
               }
               else {
-                issues.push[item];
+                issues.push(item);
               }
             }
 

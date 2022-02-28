@@ -554,7 +554,7 @@ jobs:
 
             // fetch reviews and keep only approved pulls
             for (const pull of pulls) {
-              const reviews = await github.rest.pulls.listReviews({
+              const found = await github.rest.pulls.listReviews({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 pull_number: pull.number,
@@ -562,17 +562,17 @@ jobs:
               });
 
               core.startGroup('Found reviews...');
-              console.log(reviews);
+              console.log(found);
               core.endGroup();
 
-              if (reviews.status != 200) {
+              if (found.status != 200) {
                 const error_message = `Unable to fetch reviews for pull request ${ pull.number } to verify approval.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message}\n\nThis may be related to an outage. Check [GitHub status](https://www.githubstatus.com/) before trying again. ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(error_message);
                 return;
               }
 
-              const reviewed = reviews.data.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
+              const reviewed = found.data.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
 
               if (reviewed.length > 1) {
                 // set to most recent code review
@@ -586,49 +586,7 @@ jobs:
             approved.sort((a, b) => a.approved < b.approved ? -1 : a.approved > b.approved ? 1 : 0);
             console.log(approved);
 
-            // set values of last approved pull request
-            if (approved.length > 1) {
-              const last = approved[approved.length - 1];
 
-              core.exportVariable('last_pull', last.number);
-
-              core.exportVariable('last_date', last.approved.toISO());
-              core.exportVariable('last_text', last.approved.toLocaleString(DateTime.DATE_HUGE));
-
-              boolean passed = last.labels.some(label => label.name == 'review-passed');
-              core.exportVariable('last_pass', passed);
-
-              if (!passed) {
-                boolean quick = last.labels.some(label => label.name == 'review-resubmit-quick');
-                core.exportVariable('last_type', quick ? 'Quick' : 'Code');
-              }
-            }
-
-            if (process.env.TYPE == process.env.GRADE_REVIEW) {
-
-            }
-
-            if (process.env.TYPE == process.env.GRADE_RELEASE) {
-              // set next_late to deadline for release
-              core.exportVariable('next_late', 'N/A');
-            }
-
-            if (process.env.TYPE == process.env.REQUEST_REVIEW) {
-              // if this is first code review
-              if (reviews == 0) {
-                const today = DateTime.now().setZone(zone);
-                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
-                console.log(`Deadline: ${deadline}`);
-
-                // something is converting the dates to non-ISO format
-                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
-
-                core.exportVariable('next_type', 'Code');
-                core.exportVariable('next_date', today.toLocaleString(DateTime.DATE_HUGE));
-                core.exportVariable('next_late', converted.toLocaleString(DateTime.DATE_HUGE));
-                core.exportVariable('next_link', `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`);
-              }
-            }
 
             // set calculated values
             const next_output = {

@@ -133,12 +133,10 @@ jobs:
               return;
             }
 
-            console.log(pulls);
-
             console.log(`Found ${pulls.data.length} pull requests total.`);
 
             // filter to current project
-            const current = pulls.data.filter(pull => pull.milestone.title == `Project ${project_num}`);
+            const current = pulls.data.filter(pull => pull.milestone && pull.milestone.title == `Project ${project_num}`);
             console.log(`Found ${current.length} pull requests for project ${project_num}.`);
 
             // return all reviews if project 1

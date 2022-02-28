@@ -423,6 +423,10 @@ jobs:
             }
 
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
+              const pulls = issues.filter(issue => issue.pull_request != undefined);
+
+              console.log(pulls[0].pull_request);
+
               core.setFailed('Not yet implemented.');
               return;
             }

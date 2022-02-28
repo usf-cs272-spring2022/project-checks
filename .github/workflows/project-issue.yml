@@ -449,7 +449,7 @@ jobs:
               // make sure at least one pull request for this release
               const found = pulls.find(issue => issue.title.endsWith(`Review ${ process.env.RELEASE }`));
 
-              if (found != undefined) {
+              if (found == undefined) {
                 const error_message = `You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;
                 core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
                 core.setFailed(error_message);

@@ -423,7 +423,7 @@ jobs:
             }
 
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
-              const pulls = issues.filter(issue => issue.pull_request != undefined);
+              const pulls = issues.data.filter(issue => issue.pull_request != undefined);
 
               console.log(pulls[0].pull_request);
 

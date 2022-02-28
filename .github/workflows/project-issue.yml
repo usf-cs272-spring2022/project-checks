@@ -574,10 +574,13 @@ jobs:
 
               const reviewed = found.data.filter(review => review.user.login == 'sjengle' && review.state == 'APPROVED');
 
+              console.log(`Found ${ reviewed.length } instructor approvals.`);
+
               if (reviewed.length > 1) {
                 // set to most recent code review
                 const last = reviewed[reviewed.length - 1];
                 pull.approved = DateTime.fromISO(last.submitted_at, { zone: zone });
+                console.log(`Approved at: ${ pull.approved.toISO() }`);
                 approved.push(pull);
               }
             }

@@ -426,10 +426,11 @@ jobs:
 
             // filter out issues with errors
             const passing = unfiltered.data.filter(issue => !issue.labels.some(label => label.name == "error"));
+            console.log(`Found ${ unfiltered.data.length } issues.`);
             console.log(`Removed ${ unfiltered.data.length - passing.length } issues with errors.`);
 
-            const issues = [];
-            const pulls = [];
+            let issues = [];
+            let pulls = [];
 
             // split into issues versus pull requests
             for (const item of passing) {

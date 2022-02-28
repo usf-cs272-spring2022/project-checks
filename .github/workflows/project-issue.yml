@@ -622,43 +622,37 @@ jobs:
               }
             }
 
-            // set values of next pull request
-            if (process.env.TYPE == process.env.GRADE_REVIEW) {
+            // set next dates
+            if (last_pull != undefined) {
+              const min_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MIN });
+              const max_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MAX });
+              console.log(`Min: ${ min_date.toISO() }, Max: ${ max_date.toISO() }`);
 
+              next_review.next_date = min_date.toLocaleString(DateTime.DATE_HUGE);
+              next_review.next_late = max_date.toLocaleString(DateTime.DATE_HUGE);
+              next_review.next_late_iso = max_date.toISO();
+            }
+            else {
+              // use today as minimum date and deadline as next
+              const today = DateTime.now().setZone(zone);
+              const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+              console.log(`Deadline: ${deadline}`);
+
+              // something is converting the dates to non-ISO format
+              const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
+
+              next_review.next_date = today.toLocaleString(DateTime.DATE_HUGE);
+              next_review.next_late = converted.toLocaleString(DateTime.DATE_HUGE);
+              next_review.next_late_iso = converted.toISO();
             }
 
-            if (process.env.TYPE == process.env.GRADE_RELEASE) {
-              // set next_late to deadline for release
-
-            }
-
+            // set other values of next pull request
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {
               if (reviews == 0) {
-                // if this is first code review, use deadline
-                const today = DateTime.now().setZone(zone);
-                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
-                console.log(`Deadline: ${deadline}`);
-
-                // something is converting the dates to non-ISO format
-                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
-
                 next_review.next_type = 'Code';
-                next_review.next_date = today.toLocaleString(DateTime.DATE_HUGE);
-                next_review.next_late = converted.toLocaleString(DateTime.DATE_HUGE);
-                next_review.next_late_iso = converted.toISO();
                 next_review.next_link = `https://calendly.com/sjengle/code-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;
               }
               else {
-                // else use since last review
-                const min_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MIN });
-                const max_date = DateTime.fromISO(last_review.last_date).plus({ days: process.env.NEXT_MAX });
-                console.log(`Min: ${ min_date.toISO() }, Max: ${ max_date.toISO() }`);
-
-                next_review.next_date = min_date.toLocaleString(DateTime.DATE_HUGE);
-                next_review.next_late = max_date.toLocaleString(DateTime.DATE_HUGE);
-                next_review.next_late_iso = max_date.toISO();
-
-                // set next type
                 const quick = last_pull.labels.some(label => label.name == 'review-resubmit-quick');
                 next_review.next_type = quick ? 'Quick' : 'Code';
                 `https://calendly.com/sjengle/${ next_review.next_type.toLowerCase() }-review?month=${ today.toFormat('yyyy-MM') }&date=${ today.toFormat('yyyy-MM-dd') }`;

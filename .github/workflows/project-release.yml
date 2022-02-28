@@ -175,8 +175,6 @@ jobs:
               return;
             }
 
-      # TODO Test working ahead on projects
-
       - name: 'Verify review number'
         id: 'verify_review_num'
         uses: 'actions/github-script@v6'

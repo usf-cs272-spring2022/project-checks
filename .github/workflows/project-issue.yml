@@ -534,17 +534,20 @@ jobs:
             const reviews = parseInt(process.env.REVIEWS_NUM);
 
             // set default values
-            core.exportVariable('next_type', 'N/A');
-            core.exportVariable('next_link', '#');
+            const next_review = {
+              'next_type': 'N/A',
+              'next_date': 'N/A',
+              'next_late': 'N/A',
+              'next_link': '#'
+            };
 
-            core.exportVariable('next_date', 'N/A');
-            core.exportVariable('next_late', 'N/A');
-
-            core.exportVariable('last_pull', 'N/A');
-            core.exportVariable('last_type', 'N/A');
-            core.exportVariable('last_date', 'N/A');
-            core.exportVariable('last_text', 'N/A');
-            core.exportVariable('last_pass', 'false');
+            const last_review = {
+              'last_pull': 'N/A',
+              'last_type': 'N/A',
+              'last_date': 'N/A',
+              'last_text': 'N/A',
+              'last_pass': 'N/A'
+            };
 
             // get pull requests to process
             const pulls = ${{ steps.check_eligible.outputs.result }};
@@ -592,46 +595,32 @@ jobs:
             // set values of last approved pull request
             if (approved.length > 0) {
               const last = approved[approved.length - 1];
-              core.exportVariable('last_pull', last.number);
+              last_review.last_pull = last.number;
 
-              core.exportVariable('last_date', last.approved.toISO());
-              core.exportVariable('last_text', last.approved.toLocaleString(DateTime.DATE_HUGE));
+              last_review.last_date = last.approved.toISO();
+              last_review.last_text = last.approved.toLocaleString(DateTime.DATE_HUGE);
 
               const passed = last.labels.some(label => label.name == 'review-passed');
-              core.exportVariable('last_pass', passed);
+              last_review.last_pass = passed;
 
               if (!passed) {
                 const quick = last.labels.some(label => label.name == 'review-resubmit-quick');
-                core.exportVariable('last_type', quick ? 'Quick' : 'Code');
+                last_review.last_type = quick ? 'Quick' : 'Code';
               }
             }
 
             // set calculated values
-            const next_output = {
-              'next_type': process.env.next_type,
-              'next_date': process.env.next_date,
-              'next_late': process.env.next_late,
-              'next_link': process.env.next_link
-            };
-
-            for (const output in next_output) {
-              core.setOutput(output, next_output[output]);
+            for (const output in next_review) {
+              core.setOutput(output, next_review[output]);
             }
 
-            console.log(next_output);
+            console.log(next_review);
 
-            const last_output = {
-              'last_pull': process.env.last_pull,
-              'last_type': process.env.last_type,
-              'last_date': process.env.last_date,
-              'last_pass': process.env.last_pass
+            for (const output in last_review) {
+              core.setOutput(output, last_review[output]);
             }
 
-            for (const output in last_output) {
-              core.setOutput(output, last_output[output]);
-            }
-
-            console.log(last_output);
+            console.log(last_review);
 
       - name: 'Check status'
         id: 'check_status'

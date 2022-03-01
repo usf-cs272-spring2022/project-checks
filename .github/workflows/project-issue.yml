@@ -618,20 +618,21 @@ jobs:
             console.log(process.env.TYPE);
 
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {
-              // this_review is non-existent pull currently requesting
-              // set values to range review should be held
-              // last review is last code review if it exists
-              // set this_link
-
               earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
 
-              this_review.this_type = `Pending`;
-              this_review.this_link = `Pending`;
+              let start = DateTime.now().setZone(zone);
 
-              this_review.this_date = `Pending`;
-              this_review.this_full = `Pending`;
+              if (earlier != undefined) {
+                // start is 5 days since last code review
+                start = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MIN });
+              }
 
-              this_review.this_link = `Pending`;
+              this_review.this_date = start.toISO();
+              this_review.this_full = start.toLocaleString(DateTime.DATE_HUGE);
+
+              const quick = earlier.title.startsWith(`Quick Review v`);
+              this_review.this_type = quick ? 'Quick' : 'Code';
+              this_review.this_link = `https://calendly.com/sjengle/${ this_review.this_type.toLowerCase() }-review?month=${ start.toFormat('yyyy-MM') }&date=${ start.toFormat('yyyy-MM-dd') }`;
             }
 
             if (process.env.TYPE == process.env.GRADE_REVIEW) {

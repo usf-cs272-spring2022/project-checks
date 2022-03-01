@@ -485,7 +485,7 @@ jobs:
 
                 if (
                     (reviews == 1 && found.length < 1) ||
-                    (found.length < 2)
+                    (reviews >= 2 && found.length < 2)
                 ) {
                   const error_message = `You must successfully request a project ${ project } review grade before requesting another code review.`;
                   core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);

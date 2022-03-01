@@ -366,15 +366,20 @@ jobs:
     outputs:
       error_message:  '${{ steps.check_status.outputs.error_message }}'
 
-      next_type: '${{ steps.pending.outputs.next_type }}' # code, quick
-      next_date: '${{ steps.pending.outputs.next_date }}' # date of next review (min)
-      next_late: '${{ steps.pending.outputs.next_late }}' # date of next review (max)
-      next_link: '${{ steps.pending.outputs.next_link }}' # calendly url parameters
+      this_pull: '${{ steps.get_dates.outputs.this_pull }}' # pull request, empty if requesting review or release grade
+      this_type: '${{ steps.get_dates.outputs.this_type }}' # quick or code, empty if release grade
+      this_link: '${{ steps.get_dates.outputs.this_link }}' # appointment link, empty if requesting grade
+      this_date: '${{ steps.get_dates.outputs.this_date }}' # date submitted (if requesting grade) or earliest eligible (if requesting review)
+      this_full: '${{ steps.get_dates.outputs.this_full }}' # in full text format instead of ISO
 
-      last_pull: '${{ steps.pending.outputs.last_pull }}' # pull request number, N/A
-      last_type: '${{ steps.pending.outputs.last_type }}' # code, quick, N/A
-      last_date: '${{ steps.pending.outputs.last_date }}' # date of last review, N/A
-      last_pass: '${{ steps.pending.outputs.last_pass }}' # true, false
+      late_date: '${{ steps.get_dates.outputs.late_date }}' # deadline in ISO format
+      late_full: '${{ steps.get_dates.outputs.late_full }}' # in full text format instead of ISO
+
+      last_pull: '${{ steps.get_dates.outputs.last_pull }}' # pull request, empty if no code reviews
+      last_type: '${{ steps.get_dates.outputs.last_type }}' # quick or code, empty if no code reviews
+      last_pass: '${{ steps.get_dates.outputs.last_pass }}' # whether passed, empty if no code reviews or did not pass
+      last_date: '${{ steps.get_dates.outputs.last_date }}' # date approved, empty if no code review
+      last_full: '${{ steps.get_dates.outputs.last_full }}' # in full text format instead of ISO
 
     env:
       NEXT_MIN: 5  # Minimum number of days before next review (see: eligibility)
@@ -383,8 +388,8 @@ jobs:
     # TODO Fix grade release logic
 
     steps:
-      - name: 'Check issues'
-        id: 'check_issues'
+      - name: 'Get issues'
+        id: 'get_issues'
         uses: 'actions/github-script@v6'
 
         env:
@@ -509,13 +514,13 @@ jobs:
             // only keep pull requests
             return pulls;
 
-      - name: 'Check pull requests'
-        id: 'check_pulls'
+      - name: 'Get pull requests'
+        id: 'get_pulls'
         uses: 'actions/github-script@v6'
         with:
           script: |
             // get pull requests to process
-            const pulls = ${{ steps.check_issues.outputs.result }};
+            const pulls = ${{ steps.get_issues.outputs.result }};
             console.log(`Loaded ${ pulls.length } pull requests.`);
 
             let approved = [];
@@ -564,8 +569,8 @@ jobs:
       - name: 'Install luxon'
         run: npm install luxon
 
-      - name: 'Check dates'
-        id: 'check_dates'
+      - name: 'Get dates'
+        id: 'get_dates'
         uses: 'actions/github-script@v6'
 
         env:
@@ -598,7 +603,7 @@ jobs:
               'last_full': '', // in full text format instead of ISO
             };
 
-            const approved = ${{ steps.check_pulls.outputs.result }};
+            const approved = ${{ steps.get_pulls.outputs.result }};
             core.startGroup(`Loaded ${ approved.length } pull requests.`);
             console.log(approved);
             core.endGroup();

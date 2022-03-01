@@ -599,11 +599,42 @@ jobs:
             };
 
             const approved = ${{ steps.check_pulls.outputs.result }};
-            console.log(`Loaded ${ approved.length } pull requests.`);
-
-            core.startGroup('Found approved...');
+            core.startGroup(`Loaded ${ approved.length } pull requests.`);
             console.log(approved);
             core.endGroup();
+
+            let current = undefined;
+            let earlier = undefined;
+
+            if (process.env.TYPE == process.env.REQUEST_REVIEW) {
+              // this_review is non-existent pull currently requesting
+              // set values to range review should be held
+              // last review is last code review if it exists
+            }
+
+            if (process.env.TYPE == process.env.GRADE_REVIEW) {
+              // this review is the pull request for release
+              // last review is the previous pull request before that
+            }
+
+            if (process.env.TYPE == process.env.GRADE_RELEASE) {
+              // this_review is non-existent, but use date as deadline
+              // last review is the passing pull request
+            }
+
+            // set calculated values
+
+            for (const output in this_review) {
+              core.setOutput(output, this_review[output]);
+            }
+
+            console.log(this_review);
+
+            for (const output in last_review) {
+              core.setOutput(output, last_review[output]);
+            }
+
+            console.log(last_review);
 
       - name: 'Check status'
         id: 'check_status'

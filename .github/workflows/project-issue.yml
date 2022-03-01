@@ -1078,6 +1078,8 @@ jobs:
 
             const late_date = '${{ needs.check_reviews.outputs.late_full }}';
 
+            const last_link = last_pull ? `See pull request #${ last_pull } for the previous code review. ` : '';
+
             const body = `:robot: The code review request for [release \`${{ needs.check_issue.outputs.release }}\`](https://github.com/${{ github.repository }}/releases/tag/${{ needs.check_issue.outputs.release }}) has been processed:
 
             \`\`\`json
@@ -1104,7 +1106,7 @@ jobs:
             }
             \`\`\`
 
-            This pull request closes #${ context.payload.issue.number } -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
+            ${ last_link }This pull request closes #${ context.payload.issue.number } -- see [run id ${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}) for run details.
             `;
 
             console.log(body);

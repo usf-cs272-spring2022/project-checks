@@ -588,7 +588,7 @@ jobs:
             const this_review = {
               'this_pull': '',  // pull request, empty if requesting review or release grade
               'this_type': '',  // quick or code, empty if release grade
-              'this_link': '#', // appointment link, empty if requesting grade
+              'this_link': '',  // appointment link, empty if requesting grade
               'this_date': '',  // date submitted (if requesting grade) or earliest eligible (if requesting review)
               'this_full': '',  // in full text format instead of ISO
               'late_date': '',  // deadline in ISO format
@@ -990,7 +990,7 @@ jobs:
 
             const next_type = '${{ needs.check_reviews.outputs.next_type }}';
 
-            const body = `:robot: The code review request for release \`${{ needs.check_issue.outputs.release }}\` has been processed:
+            const body = `:robot: The code review request for [release \`${{ needs.check_issue.outputs.release }}\`](https://github.com/${{ github.repository }}/releases/tag/${{ needs.check_issue.outputs.release }}) has been processed:
 
             \`\`\`json
             {

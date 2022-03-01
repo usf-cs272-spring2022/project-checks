@@ -577,6 +577,7 @@ jobs:
           PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
           REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
           RELEASE: '${{ needs.check_issue.outputs.release }}'
+          TYPE: '${{ needs.check_issue.outputs.type }}'
 
         with:
           script: |

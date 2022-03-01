@@ -52,7 +52,7 @@ jobs:
         uses: 'actions/github-script@v6'
         with:
           script: |
-            // github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
+            github.rest.issues.createComment({owner: context.repo.owner, repo: context.repo.repo, issue_number: context.payload.issue.number, body: `:robot: The GitHub Actions bot is now processing your request...${ process.env.RUN_DETAIL}`});
             console.log(context);
 
       - name: 'Check issue labels'
@@ -384,8 +384,6 @@ jobs:
       NEXT_MIN: 5  # Minimum number of days before next review (see: eligibility)
       NEXT_MAX: 10 # Maximum number of days before next review (see: late penalty)
 
-    # TODO Fix grade release logic
-
     steps:
       - name: 'Get issues'
         id: 'get_issues'
@@ -611,6 +609,8 @@ jobs:
 
             let current = undefined;
             let earlier = undefined;
+
+            // TODO Fix logic
 
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {
               // this_review is non-existent pull currently requesting
@@ -1216,7 +1216,6 @@ jobs:
     steps:
       - name: 'Check status'
         uses: 'actions/github-script@v6'
-        if: ${{ false }}
         with:
           script: |
             const results = ${{ toJSON(needs) }};

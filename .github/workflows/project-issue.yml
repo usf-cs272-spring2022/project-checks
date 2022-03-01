@@ -883,7 +883,7 @@ jobs:
 
             if (!deadline.isValid) {
               // somewhere dates in environment variables are getting converted to a different form
-              let deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
+              deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
             }
 
             results.deadline = deadline;

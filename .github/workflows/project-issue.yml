@@ -858,10 +858,6 @@ jobs:
               console.log(results);
               return results;
 
-      # TODO Lookup deadline
-      # For second code review or grading the release, the deadline should be the
-      # most recent code review plus 10 days.
-
       - name: 'Setup node'
         uses: 'actions/setup-node@v2'
         with:
@@ -895,25 +891,7 @@ jobs:
 
             console.log(`Submitted: ${ results.submitted_text }, Deadline: ${ results.deadline_text }`);
 
-            results.earned = parseInt(results.possible);
-            results.late_days = 0;
-            results.late_deduction = 0;
-
-            if (results.submitted_date <= results.deadline) {
-              core.notice(`The ${ results.assignment } assignment was submitted on ${ results.submitted_text }, before the ${ results.deadline_text } deadline.`);
-            }
-            else {
-              const late_diff = results.submitted_date.diff(results.deadline, 'days');
-              results.late_days = Math.ceil(late_diff.toObject().days);
-              console.log(`The ${ results.assignment } assignment was submitted on ${ results.submitted_text }, which is ${ results.late_days } late.`);
-
-              const late_mult = Math.ceil(results.late_days / results.duration);
-              const late_loss = late_mult * results.deduction
-              results.late_deduction = Math.min(late_loss, results.maximum);
-              console.log(`The calculated late penalty is ${ late_loss }, or ${ results.late_deduction } after considering a maximum ${ results.maximum } penalty.`);
-
-              results.earned = results.earned - results.late_deduction;
-            }
+            core.setFailed('Testing');
 
             return results;
 

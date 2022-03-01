@@ -875,6 +875,7 @@ jobs:
             const zone = 'America/Los_Angeles';
 
             const results = ${{ steps.find_deadline.outputs.result }};
+            console.log(results);
 
             core.setFailed('Testing');
 

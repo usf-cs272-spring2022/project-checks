@@ -877,6 +877,11 @@ jobs:
             const results = ${{ steps.find_deadline.outputs.result }};
             console.log(results);
 
+            // convert date strings to date objects
+            results.submitted_date = DateTime.fromISO(results.submitted_date, { zone: zone });
+            results.deadline = DateTime.fromISO(results.deadline, { zone: zone });
+
+            console.log(results);
             core.setFailed('Testing');
 
             return results;

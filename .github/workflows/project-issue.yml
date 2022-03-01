@@ -624,25 +624,6 @@ jobs:
               // earlier is the pull request before this release (if exists)
               earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
 
-              if (earlier == undefined) {
-                // use code review deadline
-                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
-                console.log(`Deadline: ${deadline}`);
-
-                // something is converting the dates to non-ISO format
-                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
-
-                this_review.late_date = converted.toISO();
-                this_review.late_full = converted.toLocaleString(DateTime.DATE_HUGE);
-              }
-              else {
-                // use days since last review
-                const deadline = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MAX });
-
-                this_review.late_date = deadline.toISO();
-                this_review.late_full = deadline.toLocaleString(DateTime.DATE_HUGE);
-              }
-
               // current is the pull request associated with the release
               current = approved.find(pull => pull.title.endsWith(`Review ${ process.env.RELEASE }`));
 
@@ -684,6 +665,19 @@ jobs:
               const submitted = DateTime.fromISO(earlier.review.submitted_at, { zone: zone });
               last_review.last_date = submitted.toISO();
               last_review.last_full = submitted.toLocaleString(DateTime.DATE_HUGE);
+
+              const deadline = submitted.plus({ days: process.env.NEXT_MAX });
+              this_review.late_date = deadline.toISO();
+              this_review.late_full = deadline.toLocaleString(DateTime.DATE_HUGE);
+            }
+            else {
+              // something is converting the dates to non-ISO format
+              const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+              const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
+              console.log(`Deadline: ${ deadline }, Converted: ${ converted }`);
+
+              this_review.late_date = converted.toISO();
+              this_review.late_full = converted.toLocaleString(DateTime.DATE_HUGE);
             }
 
             // set calculated values

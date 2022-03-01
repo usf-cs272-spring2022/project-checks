@@ -624,11 +624,13 @@ jobs:
               earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
 
               if (earlier == undefined) {
+                console.log('No earlier code reviews.');
                 // set dates?
               }
 
               // current is the pull request associated with the release
               current = approved.find(pull => pull.title.endsWith(`Review ${ process.env.RELEASE }`));
+              console.log(current);
 
               if (current == undefined) {
                 const error_message = `Could not find an approved pull request for release ${ process.env.RELEASE }. You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;

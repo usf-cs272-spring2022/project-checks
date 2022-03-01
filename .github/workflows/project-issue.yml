@@ -1115,7 +1115,7 @@ jobs:
             const result = await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: '${{ needs.check_reviews.outputs.next_type }} Review ${{ needs.check_issue.outputs.release }}',
+              title: '${{ needs.check_reviews.outputs.this_type }} Review ${{ needs.check_issue.outputs.release }}',
               head: 'review/${{ needs.check_issue.outputs.release }}',
               base: 'main',
               body: body

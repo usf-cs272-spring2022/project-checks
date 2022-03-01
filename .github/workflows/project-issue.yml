@@ -614,9 +614,6 @@ jobs:
             let current = undefined;
             let earlier = undefined;
 
-            // TODO Fix logic
-            console.log(process.env.TYPE);
-
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {
               earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
 
@@ -670,8 +667,13 @@ jobs:
               // earlier is the pull request that passed code review
               earlier = approved.find(pull => pull.labels.some(label => label.name == 'review-passed'));
 
-              // this_review is non-existent, but use date as deadline
-              // last review is the passing pull request
+              if (earlier == undefined) {
+                core.setFailed(`Expected to find at least one passing pull request.`);
+              }
+
+              const deadline = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MAX });
+              this_review.late_date = deadline.toISO();
+              this_review.late_full = deadline.toLocaleString(DateTime.DATE_HUGE);
             }
 
             core.startGroup('Found pull requests:');

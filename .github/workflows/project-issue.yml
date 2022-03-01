@@ -576,6 +576,7 @@ jobs:
         env:
           PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
           REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
+          RELEASE: '${{ needs.check_issue.outputs.release }}'
 
         with:
           script: |
@@ -615,16 +616,58 @@ jobs:
               // this_review is non-existent pull currently requesting
               // set values to range review should be held
               // last review is last code review if it exists
+              // set this_link
             }
 
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
-              // this review is the pull request for release
-              // last review is the previous pull request before that
+              // earlier is the pull request before this release (if exists)
+              earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
+
+              if (earlier == undefined) {
+                // set dates?
+              }
+
+              // current is the pull request associated with the release
+              current = approved.find(pull => pull.title.endsWith(`Review ${ process.env.RELEASE }`));
+
+              if (current == undefined) {
+                const error_message = `Could not find an approved pull request for release ${ process.env.RELEASE }. You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
             }
 
             if (process.env.TYPE == process.env.GRADE_RELEASE) {
+              // earlier is the pull request that passed code review
+              earlier = approved.find(pull => pull.labels.some(label => label.name == 'review-passed'));
+
               // this_review is non-existent, but use date as deadline
               // last review is the passing pull request
+            }
+
+            core.startGroup('Found pull requests:');
+            console.log('Current:', current);
+            console.log('Earlier:', earlier);
+            core.endGroup();
+
+            if (current != undefined) {
+              this_review.this_pull = current.number;
+              this_review.this_type = current.title.startsWith('Quick') ? 'Quick' : 'Code';
+
+              const submitted = DateTime.fromISO(current.review.submitted_at, { zone: zone });
+              this_review.this_date = submitted.toISO();
+              this_review.this_full = submitted.toLocaleString(DateTime.DATE_HUGE);
+            }
+
+            if (earlier != undefined) {
+              last_review.last_pull = earlier.number;
+              last_review.last_type = earlier.title.startsWith('Quick') ? 'Quick' : 'Code';
+              last_review.last_pass = earlier.labels.some(label => label.name == 'review-passed');
+
+              const submitted = DateTime.fromISO(earlier.review.submitted_at, { zone: zone });
+              last_review.last_date = submitted.toISO();
+              last_review.last_full = submitted.toLocaleString(DateTime.DATE_HUGE);
             }
 
             // set calculated values
@@ -986,9 +1029,14 @@ jobs:
         with:
           script: |
             const last_type = '${{ needs.check_reviews.outputs.last_type }}';
-            const last_pull = '${{ needs.check_reviews.outputs.last_type }}';
+            const last_pull = '${{ needs.check_reviews.outputs.last_pull }}';
+            const last_date = '${{ needs.check_reviews.outputs.last_full }}';
+            const last_pass = '${{ needs.check_reviews.outputs.last_pass }}';
 
-            const next_type = '${{ needs.check_reviews.outputs.next_type }}';
+            const this_type = '${{ needs.check_reviews.outputs.this_type }}';
+            const this_date = '${{ needs.check_reviews.outputs.this_full }}';
+
+            const late_date = '${{ needs.check_reviews.outputs.late_full }}';
 
             const body = `:robot: The code review request for [release \`${{ needs.check_issue.outputs.release }}\`](https://github.com/${{ github.repository }}/releases/tag/${{ needs.check_issue.outputs.release }}) has been processed:
 
@@ -1002,16 +1050,16 @@ jobs:
               "reviews": ${{ needs.check_issue.outputs.reviews }},
 
               "last_review": {
-                "pull": "${ last_pull != "N/A" ? '#' : '' }${ last_pull }",
-                "type": "${ last_type != "N/A" ? last_type.toLowerCase() : last_type }",
-                "date": "${{ needs.check_reviews.outputs.last_text }}",
-                "pass": ${{ needs.check_reviews.outputs.last_pass }}
+                "pull": "${ last_pull ? last_pull : 'N/A' }",
+                "type": "${ last_type ? last_type.toLowerCase() : 'N/A' }",
+                "date": "${ last_date ? last_date : 'N/A' }",
+                "pass": ${ last_pass ? true : false }
               },
 
               "this_review": {
-                "type": "${ next_type.toLowerCase() }",
-                "date": "${{ needs.check_reviews.outputs.next_date }}",
-                "late": "${{ needs.check_reviews.outputs.next_late }}"
+                "type": "${ this_type ? last_type.toLowerCase() : 'N/A' }",
+                "date": "${ this_date ? this_date : 'N/A' }",
+                "late": "${ late_date ? late_date : 'N/A' }"
               }
             }
             \`\`\`
@@ -1044,10 +1092,10 @@ jobs:
         uses: 'actions/github-script@v6'
 
         env:
-          REVIEW_TYPE: '${{ needs.check_reviews.outputs.next_type }}'
-          REVIEW_DATE: '${{ needs.check_reviews.outputs.next_date }}'
-          REVIEW_LATE: '${{ needs.check_reviews.outputs.next_late }}'
-          REVIEW_LINK: '${{ needs.check_reviews.outputs.next_link }}'
+          REVIEW_TYPE: '${{ needs.check_reviews.outputs.this_type }}'
+          REVIEW_DATE: '${{ needs.check_reviews.outputs.this_full }}'
+          REVIEW_LATE: '${{ needs.check_reviews.outputs.late_full }}'
+          REVIEW_LINK: '${{ needs.check_reviews.outputs.this_link }}'
 
         with:
           script: |
@@ -1073,11 +1121,11 @@ jobs:
 
             Be careful to avoid the following issues before your appointment:
 
-              - Do not make modifications to the code in your \`main\` branch before your appointment. If your code is not ready for code review, close this request, cancel your appointment, and re-request a code review when your code is ready.
+              - **Do not make modifications to the code in your \`main\` branch before your appointment.** If your code is not ready for code review, close this request, cancel your appointment, and re-request a code review when your code is ready.
 
-              - Do not merge this pull request until it is approved by the instructor during your code review appointment. If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
+              - **Do not merge this pull request until it is approved by the instructor during your code review appointment.** If you accidentally merge this pull request before your appointment, you will have to close this review request, cancel your appointment, and re-request a code review.
 
-              - Do not abuse the appointment system. This includes signing up for more than one appointment at a time, signing up before you are eligible for an appointment, arriving more than 5 minutes late or missing an appointment, and signing up for an appointment before you are approved.
+              - **Do not abuse the appointment system.** This includes signing up for more than one appointment at a time, signing up before you are eligible for an appointment, arriving more than 5 minutes late or missing an appointment, and signing up for an appointment before you are approved.
 
             Repeat issues with the code review process may result in a point deduction to your code review grades.
             `;

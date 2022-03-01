@@ -621,16 +621,17 @@ jobs:
               earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
 
               let start = DateTime.now().setZone(zone);
+              let quick = false;
 
               if (earlier != undefined) {
                 // start is 5 days since last code review
                 start = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MIN });
+                quick = earlier.labels.some(label => label.name == 'review-resubmit-quick');
               }
 
               this_review.this_date = start.toISO();
               this_review.this_full = start.toLocaleString(DateTime.DATE_HUGE);
 
-              const quick = earlier.labels.some(label => label == 'review-resubmit-quick');
               this_review.this_type = quick ? 'Quick' : 'Code';
               this_review.this_link = `https://calendly.com/sjengle/${ this_review.this_type.toLowerCase() }-review?month=${ start.toFormat('yyyy-MM') }&date=${ start.toFormat('yyyy-MM-dd') }`;
             }

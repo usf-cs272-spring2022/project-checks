@@ -881,6 +881,11 @@ jobs:
             results.submitted_date = DateTime.fromISO(results.submitted_date, { zone: zone });
             results.deadline = DateTime.fromISO(results.deadline, { zone: zone });
 
+            if (!results.deadline.isValid) {
+              // somewhere dates in environment variables are getting converted to a different form
+              results.deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
+            }
+
             console.log(results);
             core.setFailed('Testing');
 

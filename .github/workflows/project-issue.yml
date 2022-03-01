@@ -1100,7 +1100,7 @@ jobs:
               },
 
               "this_review": {
-                "type": "${ this_type ? last_type.toLowerCase() : 'N/A' }",
+                "type": "${ this_type ? this_type.toLowerCase() : 'N/A' }",
                 "date": "${ this_date ? this_date : 'N/A' }",
                 "late": "${ late_date ? late_date : 'N/A' }"
               }

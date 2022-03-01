@@ -879,12 +879,14 @@ jobs:
 
             // convert date strings to date objects
             results.submitted_date = DateTime.fromISO(results.submitted_date, { zone: zone });
-            results.deadline = DateTime.fromISO(results.deadline, { zone: zone });
+            let deadline = DateTime.fromISO(results.deadline, { zone: zone });
 
-            if (!results.deadline.isValid) {
+            if (!deadline.isValid) {
               // somewhere dates in environment variables are getting converted to a different form
-              // results.deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
+              let deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
             }
+
+            results.deadline = deadline;
 
             console.log(results);
             core.setFailed('Testing');

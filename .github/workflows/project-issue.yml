@@ -876,21 +876,6 @@ jobs:
 
             const results = ${{ steps.find_deadline.outputs.result }};
 
-            // convert date strings to date objects
-            results.submitted_date = DateTime.fromISO(results.submitted_date, { zone: zone });
-            results.deadline = DateTime.fromISO(results.deadline, { zone: zone });
-
-            if (!results.deadline.isValid) {
-              // somewhere dates in environment variables are getting converted to a different form
-              results.deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
-            }
-
-            // save text representations
-            results.submitted_text = results.submitted_date.toLocaleString(DateTime.DATETIME_FULL);
-            results.deadline_text = results.deadline.toLocaleString(DateTime.DATETIME_FULL);
-
-            console.log(`Submitted: ${ results.submitted_text }, Deadline: ${ results.deadline_text }`);
-
             core.setFailed('Testing');
 
             return results;

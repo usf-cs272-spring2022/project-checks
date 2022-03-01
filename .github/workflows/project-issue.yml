@@ -625,13 +625,26 @@ jobs:
               earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
 
               if (earlier == undefined) {
-                console.log('No earlier code reviews.');
-                // set dates?
+                // use code review deadline
+                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+                console.log(`Deadline: ${deadline}`);
+
+                // something is converting the dates to non-ISO format
+                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
+
+                this_review.late_date = converted.toISO();
+                this_review.late_full = converted.toLocaleString(DateTime.DATE_HUGE);
+              }
+              else {
+                // use days since last review
+                const deadline = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MAX });
+
+                this_review.late_date = deadline.toISO();
+                this_review.late_full = deadline.toLocaleString(DateTime.DATE_HUGE);
               }
 
               // current is the pull request associated with the release
               current = approved.find(pull => pull.title.endsWith(`Review ${ process.env.RELEASE }`));
-              console.log(current);
 
               if (current == undefined) {
                 const error_message = `Could not find an approved pull request for release ${ process.env.RELEASE }. You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;

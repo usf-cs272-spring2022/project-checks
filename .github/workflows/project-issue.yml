@@ -915,8 +915,6 @@ jobs:
             }
 
             console.log(results);
-            core.setFailed('Testing');
-
             return results;
 
       - name: 'Check success'

@@ -581,21 +581,21 @@ jobs:
             const reviews = parseInt(process.env.REVIEWS_NUM);
 
             const this_review = {
-              'pull': '',  // pull request, empty if requesting review or release grade
-              'type': '',  // quick or code, empty if release grade
-              'link': '#', // appointment link, empty if requesting grade
-              'held_date': '', // date submitted (if requesting grade) or earliest eligible (if requesting review)
-              'held_text': '', // in full text format instead of ISO
-              'late_date': '', // deadline in ISO format
-              'late_text': '', // in full text format instead of ISO
+              'this_pull': '',  // pull request, empty if requesting review or release grade
+              'this_type': '',  // quick or code, empty if release grade
+              'this_link': '#', // appointment link, empty if requesting grade
+              'this_date': '',  // date submitted (if requesting grade) or earliest eligible (if requesting review)
+              'this_full': '',  // in full text format instead of ISO
+              'late_date': '',  // deadline in ISO format
+              'late_full': '',  // in full text format instead of ISO
             };
 
             const last_review = {
-              'pull': '',  // pull request, empty if no code reviews
-              'type': '',  // quick or code, empty if no code reviews
-              'pass': '',  // whether passed, empty if no code reviews or did not pass
-              'held_date': '', // date approved, empty if no code review
-              'held_text': '', // in full text format instead of ISO
+              'last_pull': '', // pull request, empty if no code reviews
+              'last_type': '', // quick or code, empty if no code reviews
+              'last_pass': '', // whether passed, empty if no code reviews or did not pass
+              'last_date': '', // date approved, empty if no code review
+              'last_full': '', // in full text format instead of ISO
             };
 
             const approved = ${{ steps.check_pulls.outputs.result }};

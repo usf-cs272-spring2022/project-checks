@@ -8,6 +8,10 @@
 # break up into multiple files, workflows, or actions
 # add support for external configuration json
 
+# TODO Did not create pull request with correct title or correct link!
+# Did not create with correct last_review information
+# https://github.com/usf-cs272-spring2022/project-solution/pull/&name=Sophie%20Engle&email=sjengle@dons.usfca.edu&a1=https%3A%2F%2Fgithub.com%2Fusf-cs272-spring2022%2Fproject-solution%2Fpull%2F13
+
 name: 'Check project issue'
 
 on:
@@ -611,17 +615,43 @@ jobs:
             let earlier = undefined;
 
             // TODO Fix logic
+            console.log(process.env.TYPE);
 
             if (process.env.TYPE == process.env.REQUEST_REVIEW) {
               // this_review is non-existent pull currently requesting
               // set values to range review should be held
               // last review is last code review if it exists
               // set this_link
+
+              earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
+
+              this_review.this_type = `Pending`;
+              this_review.this_link = `Pending`;
+
+              this_review.this_date = `Pending`;
+              this_review.this_full = `Pending`;
+
+              this_review.this_link = `Pending`;
             }
 
             if (process.env.TYPE == process.env.GRADE_REVIEW) {
-              // earlier is the pull request before this release (if exists)
-              earlier = approved.find(pull => reviews > 0 && pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
+              if (reviews == 0) {
+                // something is converting the dates to non-ISO format
+                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
+                console.log(`Deadline: ${ deadline }, Converted: ${ converted }`);
+
+                this_review.late_date = converted.toISO();
+                this_review.late_full = converted.toLocaleString(DateTime.DATE_HUGE);
+              }
+              else {
+                // earlier is the pull request before this release (if exists)
+                earlier = approved.find(pull => pull.title.includes(`Review v${ project }.${ reviews - 1 }.`));
+
+                if (earlier == undefined) {
+                  core.setFailed(`Expected to find at least one approved v${ project }.${ reviews - 1 }.x pull request.`);
+                }
+              }
 
               // current is the pull request associated with the release
               current = approved.find(pull => pull.title.endsWith(`Review ${ process.env.RELEASE }`));
@@ -668,15 +698,6 @@ jobs:
               const deadline = submitted.plus({ days: process.env.NEXT_MAX });
               this_review.late_date = deadline.toISO();
               this_review.late_full = deadline.toLocaleString(DateTime.DATE_HUGE);
-            }
-            else {
-              // something is converting the dates to non-ISO format
-              const deadline = process.env[`PROJECT_${ project }_REVIEW`];
-              const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
-              console.log(`Deadline: ${ deadline }, Converted: ${ converted }`);
-
-              this_review.late_date = converted.toISO();
-              this_review.late_full = converted.toLocaleString(DateTime.DATE_HUGE);
             }
 
             // set calculated values

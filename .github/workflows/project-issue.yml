@@ -124,7 +124,6 @@ jobs:
         uses: 'actions/github-script@v6'
         env:
           REQUEST_TYPE: '${{ steps.check_labels.outputs.type }}'
-          FORCE: '${{ steps.check_body.outputs.force }}'
         with:
           script: |
             const title = context.payload.issue.title;
@@ -777,6 +776,14 @@ jobs:
       - name: 'Lookup deadline'
         id: 'find_deadline'
         uses: 'actions/github-script@v6'
+
+        env:
+          PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
+          REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
+          MILE_NUM: '${{ needs.check_issue.outputs.mile }}'
+          RELEASE: '${{ needs.check_issue.outputs.release }}'
+          TYPE: '${{ needs.check_issue.outputs.type }}'
+
         with:
           script: |
               const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE} = process.env;
@@ -784,10 +791,10 @@ jobs:
 
               // set grading parameters from past steps
               const results = {
-                type: '${{ needs.check_issue.outputs.type }}',
-                release: '${{ needs.check_issue.outputs.release }}',
-                project: '${{ needs.check_issue.outputs.project }}',
-                reviews: '${{ needs.check_issue.outputs.reviews }}'
+                type:    process.env.TYPE,
+                release: process.env.RELEASE,
+                project: parseInt(process.env.PROJECT_NUM),
+                reviews: parseInt(process.env.REVIEWS_NUM)
               };
 
               // set parameters based on grade type
@@ -809,9 +816,11 @@ jobs:
 
                 // for code review, based on pull request approval
                 case GRADE_REVIEW:
-                  results.submitted_type = 'pull request';
                   results.assignment = `${ results.assignment } ${ results.reviews + 1 }`;
-                  core.setFailed('Not yet implemented.');
+
+                  results.submitted_id   = '${{ needs.check_reviews.outputs.this_pull }}';
+                  results.submitted_date = '${{ needs.check_reviews.outputs.this_date }}';
+                  results.submitted_link = `${ context.payload.repository.html_url }/pull/${ results.submitted_id }`;
                   break;
 
                 default:
@@ -837,8 +846,7 @@ jobs:
                   results.deadline = config.deadline[GRADE_REVIEW][`project${ results.project }`];
 
                   if (results.reviews > 0) {
-                    // due +duration from last review
-                    core.setFailed('Not yet implemented.');
+                    results.deadline = '${{ needs.check_reviews.outputs.late_date }}';
                   }
 
                   break;

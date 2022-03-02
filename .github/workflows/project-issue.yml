@@ -305,6 +305,7 @@ jobs:
 
               core.setOutput('submitted_id', success.id);
               core.setOutput('submitted_date', success.head_commit.timestamp);
+              core.setOutput('submitted_link', `[Run ID ${success.id}](${context.payload.repository.html_url}/actions/runs/${success.id})`);
               console.log(`ID: ${success.id}, Submitted: ${success.head_commit.timestamp}`);
               return;
             }

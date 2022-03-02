@@ -8,9 +8,7 @@
 # break up into multiple files, workflows, or actions
 # add support for external configuration json
 
-# TODO Did not create pull request with correct title or correct link!
-# Did not create with correct last_review information
-# https://github.com/usf-cs272-spring2022/project-solution/pull/&name=Sophie%20Engle&email=sjengle@dons.usfca.edu&a1=https%3A%2F%2Fgithub.com%2Fusf-cs272-spring2022%2Fproject-solution%2Fpull%2F13
+# TODO Add to verification link (release link, pull request link, etc.)
 
 name: 'Check project issue'
 
@@ -967,6 +965,9 @@ jobs:
               // somewhere dates in environment variables are getting converted to a different form
               deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
             }
+
+            // TODO TESTING
+            deadline = DateTime.now().minus({ days: 4 });
 
             results.deadline = deadline;
 

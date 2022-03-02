@@ -520,14 +520,21 @@ jobs:
         uses: 'actions/github-script@v6'
 
         env:
-          TYPE: '${{ needs.check_issue.outputs.type }}'
+          PROJECT_NUM: '${{ needs.check_issue.outputs.project }}'
+          REVIEWS_NUM: '${{ needs.check_issue.outputs.reviews }}'
+          MILE_NUM: '${{ needs.check_issue.outputs.mile }}'
           RELEASE: '${{ needs.check_issue.outputs.release }}'
+          TYPE: '${{ needs.check_issue.outputs.type }}'
 
         with:
           script: |
             // get pull requests to process
             const pulls = ${{ steps.get_issues.outputs.result }};
             console.log(`Loaded ${ pulls.length } pull requests.`);
+
+            const project = parseInt(process.env.PROJECT_NUM);
+            const reviews = parseInt(process.env.REVIEWS_NUM);
+            const milestone = parseInt(process.env.MILE_NUM);
 
             let approved = [];
 

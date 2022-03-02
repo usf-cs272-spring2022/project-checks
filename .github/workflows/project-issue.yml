@@ -149,7 +149,7 @@ jobs:
 
               if (reviews > 1 && process.env.REQUEST_TYPE == process.env.GRADE_REVIEW) {
                 // only request code review grades for code review 0 and 1
-                core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews.\n\n> ${ title }\n\n ${ process.env.RUN_DETAIL }`);
+                core.setOutput('error_message', `:no_entry: Invalid grade request; you can only request code review grades for your first two code reviews. ${ process.env.RUN_DETAIL }`);
                 core.setFailed(`Invalid request; you can only request code review grades for your first two code reviews.`);
               }
             }

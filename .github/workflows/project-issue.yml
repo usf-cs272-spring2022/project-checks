@@ -518,6 +518,11 @@ jobs:
       - name: 'Get pull requests'
         id: 'get_pulls'
         uses: 'actions/github-script@v6'
+
+        env:
+          TYPE: '${{ needs.check_issue.outputs.type }}'
+          RELEASE: '${{ needs.check_issue.outputs.release }}'
+
         with:
           script: |
             // get pull requests to process
@@ -557,7 +562,51 @@ jobs:
               }
             }
 
-            // TODO Check for failure conditions
+            const { GRADE_TESTS, GRADE_REVIEW, GRADE_RELEASE, REQUEST_REVIEW } = process.env;
+
+            if (process.env.TYPE == REQUEST_REVIEW) {
+              const found = approved.find(pull => pull.labels.some(label => label.name == 'review-passed'));
+
+              if (found != undefined) {
+                const error_message = `You passed code review in pull request #${found.number} and do not need to request any more code reviews for project ${ project }. Did you mean to request a final release grade instead?`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+            }
+
+            if (process.env.TYPE == GRADE_RELEASE) {
+              const found = approved.find(pull => pull.labels.some(label => label.name == 'review-passed'));
+
+              if (found == undefined) {
+                const error_message = `You must have a passing code review for project ${ project } before requesting a final release grade. Did you mean to request a code review instead?`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+            }
+
+            if (process.env.TYPE == GRADE_RELEASE) {
+              const found = approved.find(pull => pull.labels.some(label => label.name == 'review-passed'));
+
+              if (found == undefined) {
+                const error_message = `You must have a passing code review for project ${ project } before requesting a final release grade. Did you mean to request a code review instead?`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+            }
+
+            if (process.env.TYPE == GRADE_REVIEW) {
+              const found = approved.find(pull => pull.title.endsWith(`Review ${ process.env.RELEASE }`));
+
+              if (found == undefined) {
+                const error_message = `Could not find an approved pull request for release ${ process.env.RELEASE }. You must have a code review and approved pull request for project ${ project } before requesting a code review grade.`;
+                core.exportVariable('ERROR_MESSAGE', `:no_entry: ${error_message} ${ process.env.FIX_ERRORS } ${ process.env.RUN_DETAIL }`);
+                core.setFailed(error_message);
+                return;
+              }
+            }
 
             console.log(`Found ${ approved.length } approved pull requests.`);
             return approved;

@@ -384,7 +384,7 @@ jobs:
       last_full: '${{ steps.get_dates.outputs.last_full }}' # in full text format instead of ISO
 
     env:
-      NEXT_MIN: 5  # Minimum number of days before next review (see: eligibility)
+      NEXT_MIN: 3  # Minimum number of days before next review (see: eligibility)
       NEXT_MAX: 10 # Maximum number of days before next review (see: late penalty)
 
     steps:
@@ -676,7 +676,7 @@ jobs:
               let quick = false;
 
               if (earlier != undefined) {
-                // start is 5 days since last code review
+                // start is # days since last code review
                 start = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MIN });
                 quick = earlier.labels.some(label => label.name == 'review-resubmit-quick');
               }

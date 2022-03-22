@@ -148,7 +148,7 @@ jobs:
               - [ ] Fix the \`TODO\` comments in the code, then commit and push those changes to GitHub. Reach out on Piazza or office hours if any of the comments are unclear.
               - [ ] Create a new \`v${ data.project }.${ data.reviews + 1 }.x\` release and make sure it passes all of the checks.
 
-            Once the above is complete, use the [Request Code Review Appointment](${ context.payload.repository.html_url }/issues/new?assignees=&labels=review-request&template=request-code-review-appointment.md&title=Request+Code+Review+Appointment+v${ data.project }.${ data.reviews + 1 }.0) issue template to request your next code review appointment. Your next appointment should be between \`5\` to \`10\` days from today to avoid penalties.
+            Once the above is complete, use the [Request Code Review Appointment](${ context.payload.repository.html_url }/issues/new?assignees=&labels=review-request&template=request-code-review-appointment.md&title=Request+Code+Review+Appointment+v${ data.project }.${ data.reviews + 1 }.0) issue template to request your next code review appointment. Your next appointment should be between \`3\` to \`10\` days from today to avoid penalties.
             `;
 
             if (data.reviews < 2) {

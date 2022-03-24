@@ -139,6 +139,21 @@ jobs:
             const current = pulls.data.filter(pull => pull.milestone && pull.milestone.title == `Project ${project_num}`);
             console.log(`Found ${current.length} pull requests for project ${project_num}.`);
 
+            // reduce size of returned value
+            for (const pull of current) {
+              const merge = {
+                head_sha: pull.head.sha,
+                head_ref: pull.head.ref,
+                base_sha: pull.base.sha,
+                base_ref: pull.base.ref
+              };
+
+              pull.merge = merge;
+              delete pull.head;
+              delete pull.base;
+              delete pull._links;
+            }
+
             // return all reviews if project 1
             if (project_num == 1) {
               return current;

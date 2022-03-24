@@ -152,6 +152,10 @@ jobs:
               delete pull.head;
               delete pull.base;
               delete pull._links;
+              delete pull.assignees;
+
+              pull.milestone.creator = pull.milestone.creator.login;
+              delete pull.milestone.creator;
             }
 
             // return all reviews if project 1

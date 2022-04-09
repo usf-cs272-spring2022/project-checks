@@ -963,7 +963,7 @@ jobs:
 
             if (!deadline.isValid) {
               // somewhere dates in environment variables are getting converted to a different form
-              deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss");
+              deadline = DateTime.fromFormat(results.deadline, "MM/dd/yyyy HH:mm:ss", { zone: zone });
             }
 
             results.deadline = deadline;

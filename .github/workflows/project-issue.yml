@@ -680,6 +680,18 @@ jobs:
                 start = DateTime.fromISO(earlier.review.submitted_at, { zone: zone }).plus({ days: process.env.NEXT_MIN });
                 quick = earlier.labels.some(label => label.name == 'review-resubmit-quick');
               }
+              else if (reviews == 0) {
+                // must be first code review request
+                const deadline = process.env[`PROJECT_${ project }_REVIEW`];
+                const converted = DateTime.fromFormat(deadline, "MM/dd/yyyy HH:mm:ss");
+                console.log(`Deadline: ${ deadline }, Converted: ${ converted }`);
+
+                this_review.late_date = converted.toISO();
+                this_review.late_full = converted.toLocaleString(DateTime.DATE_HUGE);
+              }
+              else {
+                  core.setFailed(`Expected to find at least one approved v${ project }.${ reviews - 1 }.x pull request.`);
+              }
 
               this_review.this_date = start.toISO();
               this_review.this_full = start.toLocaleString(DateTime.DATE_HUGE);
